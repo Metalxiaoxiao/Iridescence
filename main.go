@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	fileserver "filesystem"
 	"fmt"
 	jsonprovider "jsonProvider"
 	"logger"
@@ -207,6 +208,8 @@ func main() {
 	logger.Info("服务器启动成功！")
 	http.HandleFunc(confData.WebSocketServiceRote, handleWebSocket)
 	http.HandleFunc(confData.RegisterServiceRote, handleRegister)
+	http.HandleFunc(confData.UploadServiceRote, fileserver.HandleFileUpload)
+	http.HandleFunc(confData.DownloadServiceRote, fileserver.HandleFileDownload)
 	logger.Error(http.ListenAndServe(":"+_PROT, nil))
 }
 
@@ -377,17 +380,17 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			如果超时未收到接收成功包，那么尝试重新发送10次，10次还未发送成功，向发送者返回发送失败数据包。
 			5.如果接收者不在线，存入Session会话储存数据库
 			*/
-			var decodedPack jsonprovider.SendMessageRequestPack
-			jsonprovider.ParseJSON(message, &decodedPack)
-			insertQuery := "INSERT INTO chatdata (conversation_id, user_id, recipient_id, content, timestamp) VALUES (?, ?, ?, ?, ?)"
-			timestamp := time.Now()
-			recipientID := decodedPack.TargetID
-			messageContent := decodedPack.MessageBody
-			useDB(_SessionDBName)
-			_, err = db.Exec(, insertQuery, userID, recipientID, messageContent, timestamp)
-			if err != nil {
-				logger.Error("保存用户漫游消息时出现错误", err)
-			}
+			// var decodedPack jsonprovider.SendMessageRequestPack
+			// jsonprovider.ParseJSON(message, &decodedPack)
+			// insertQuery := "INSERT INTO chatdata (conversation_id, user_id, recipient_id, content, timestamp) VALUES (?, ?, ?, ?, ?)"
+			// timestamp := time.Now()
+			// recipientID := decodedPack.TargetID
+			// messageContent := decodedPack.MessageBody
+			// useDB(_SessionDBName)
+			// // _, err = db.Exec(, insertQuery, userID, recipientID, messageContent, timestamp)
+			// if err != nil {
+			// 	logger.Error("保存用户漫游消息时出现错误", err)
+			// }
 
 		case "sendGroupMessage":
 

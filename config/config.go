@@ -21,6 +21,8 @@ type Config struct {
 	}
 	RegisterServiceRote  string `json:"registerRote"`
 	WebSocketServiceRote string `json:"wsRote"`
+	UploadServiceRote    string `json:"uploadRote"`
+	DownloadServiceRote  string `json:"downloadRote"`
 }
 
 // LoadConfig 从指定的文件路径加载配置文件，如果文件不存在则创建并写入默认配置
@@ -129,6 +131,8 @@ func getDefaultConfig() Config {
 		// },
 		RegisterServiceRote:  "/register",
 		WebSocketServiceRote: "/ws",
+		UploadServiceRote:    "/upload",
+		DownloadServiceRote:  "/download",
 	}
 
 	return defaultConfig
