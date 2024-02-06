@@ -3,8 +3,10 @@ go 1.20
 use (
 	.
 	./config
+	./dbUtils
 	./filesystem
+	./hashUtils
 	./jsonProvider
 	./logger
-	./webService
+	./httpService
 )
