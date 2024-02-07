@@ -1,10 +1,10 @@
 package httpService
 
 import (
-	"LiteChatServer/hashUtils"
 	"config"
 	"dbUtils"
 	"fmt"
+	"hashUtils"
 	"logger"
 	"net/http"
 	"regexp"

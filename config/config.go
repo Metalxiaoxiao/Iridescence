@@ -16,9 +16,6 @@ type Config struct {
 		Account  string `json:"account"`
 		Password string `json:"password"`
 	}
-	GlobalVariables struct {
-		// AutoincreasingConversationID int `json:"autoincreasingSessionID"`
-	}
 	RegisterServiceRote  string `json:"registerRote"`
 	WebSocketServiceRote string `json:"wsRote"`
 	UploadServiceRote    string `json:"uploadRote"`
@@ -125,11 +122,6 @@ func getDefaultConfig() Config {
 			Account:  "default_account",
 			Password: "default_password",
 		},
-		// GlobalVariables: struct {
-		// 	AutoincreasingConversationID int `json:"autoincreasingSessionID"`
-		// }{
-		// 	AutoincreasingConversationID: 0,
-		// },
 		RegisterServiceRote:  "/register",
 		WebSocketServiceRote: "/ws",
 		UploadServiceRote:    "/upload",

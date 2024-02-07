@@ -3,12 +3,10 @@
   "port": "8080",
   "DataBaseSettings": {
     "address": "localhost:3306",
-    "account": "default_account",
-    "password": "default_password"
   },
-  "GlobalVariables": {},
   "registerRote": "/register",
   "wsRote": "/ws",
   "uploadRote": "/upload",
-  "downloadRote": "/download"
+  "downloadRote": "/download",
+  "SaltLength": 8
 }

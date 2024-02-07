@@ -44,6 +44,7 @@ func DbInit(confData config.Config) {
 	UseDB(db, _BasicChatDBName)
 	// 如果表不存在，则创建表
 	if CheckTableExistence(db, _BasicChatDBName, "userdatatable") == 0 {
+		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到用户数据表，自动创建")
 		createTable := `
 		CREATE TABLE userdatatable (
@@ -67,6 +68,7 @@ func DbInit(confData config.Config) {
 		}
 	}
 	if CheckTableExistence(db, _BasicChatDBName, "groupdatatable") == 0 {
+		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到群聊数据表，自动创建")
 		createTable := `
 			CREATE TABLE groupdatatable (
@@ -86,6 +88,7 @@ func DbInit(confData config.Config) {
 		}
 	}
 	if CheckTableExistence(db, _BasicChatDBName, "offlinegroupmessages") == 0 {
+		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到离线群消息数据表，自动创建")
 		createTable := `CREATE TABLE offlinegroupmessages (
     			senderID int unsigned DEFAULT NULL,
@@ -103,6 +106,7 @@ func DbInit(confData config.Config) {
 		}
 	}
 	if CheckTableExistence(db, _BasicChatDBName, "offlinemessages") == 0 {
+		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到离线消息数据表，自动创建")
 		createTable := `CREATE TABLE offlinemessages (
     			senderID int unsigned DEFAULT NULL,
