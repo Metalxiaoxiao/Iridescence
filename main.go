@@ -169,12 +169,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		jsonprovider.ParseJSON(message, &pre)
 		switch pre.Command {
 		case "sendUserMessage":
-			var decodedPack jsonprovider.SendMessageRequestPack
-			jsonprovider.ParseJSON(message, &decodedPack)
+			var receivedPack jsonprovider.SendMessageRequestPack
+			jsonprovider.ParseJSON(message, &receivedPack)
 			insertQuery := "INSERT INTO offlinemessages (senderID,receiverID,messageBody,time,messageType) VALUES (?,?,?,?,?)"
 			timestamp := time.Now()
-			recipientID := decodedPack.TargetID
-			messageContent := decodedPack.MessageBody
+			recipientID := receivedPack.TargetID
+			messageContent := receivedPack.MessageBody
 			_, err = db.Exec(insertQuery, userID, recipientID, messageContent, timestamp, 0)
 			if err != nil {
 				logger.Error("保存用户离线消息时出现错误", err)
