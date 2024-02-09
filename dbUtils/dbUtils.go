@@ -21,8 +21,7 @@ func UseDB(db *sql.DB, DBname string) {
 }
 
 func CheckTableExistence(db *sql.DB, DBname string, tableName string) int {
-	UseDB(db, "information_schema")
-	query := "SELECT COUNT(*) FROM tables WHERE table_schema = ? AND table_name = ?"
+	query := "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?"
 	var tablecount int
 	err := db.QueryRow(query, DBname, tableName).Scan(&tablecount)
 	if err != nil {
@@ -30,6 +29,11 @@ func CheckTableExistence(db *sql.DB, DBname string, tableName string) int {
 	}
 	return tablecount
 }
+
+func GetDBPtr() *sql.DB {
+	return db
+}
+
 func DbInit(confData config.Config) {
 	db, err := sql.Open("mysql", confData.DataBaseSettings.Account+":"+confData.DataBaseSettings.Password+"@tcp("+confData.DataBaseSettings.Address+")/")
 	if err != nil {
@@ -95,7 +99,7 @@ func DbInit(confData config.Config) {
 				receiverID int unsigned NOT NULL,
 				messageID int unsigned DEFAULT NULL,
 				time datetime DEFAULT NULL,
-				content text DEFAULT NULL,
+				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
 				PRIMARY KEY (receiverID) USING BTREE,
 				KEY idx_senderID (senderID)
@@ -113,7 +117,7 @@ func DbInit(confData config.Config) {
 				receiverID int unsigned NOT NULL,
 				messageID int unsigned DEFAULT NULL,
 				time datetime DEFAULT NULL,
-				content text DEFAULT NULL,
+				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
 				PRIMARY KEY (receiverID) USING BTREE,
 				KEY idx_senderID (senderID)

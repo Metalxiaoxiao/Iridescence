@@ -2,6 +2,7 @@ package main
 
 import (
 	"config"
+	"database/sql"
 	"dbUtils"
 	"encoding/json"
 	fileserver "filesystem"
@@ -40,7 +41,10 @@ type User struct {
 	UserFriendList json.RawMessage `json:"userFriendList"`
 }
 
-var confData config.Config
+var (
+	confData config.Config
+	db       *sql.DB
+)
 
 func main() {
 
@@ -78,6 +82,8 @@ func main() {
 	dbUtils.DbInit(confData)
 	hashUtils.LoadConfig(confData)
 	httpService.LoadConfig(confData)
+
+	db = dbUtils.GetDBPtr()
 
 	logger.Info("服务器启动成功！")
 	http.HandleFunc(confData.WebSocketServiceRote, handleWebSocket)
@@ -163,25 +169,16 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		jsonprovider.ParseJSON(message, &pre)
 		switch pre.Command {
 		case "sendUserMessage":
-			/*发送消息确保不丢包：
-			1.客户端发送数据包到Server，该数据包仅包含一个临时ID（可以是客户端生成的时间戳），接收者和基本消息内容。
-			2.服务端收到发送者数据包后插入Session数据库，并为消息分配一个ID（服务端的时间戳）
-			3.服务端返回发送成功数据包（包含一个时间戳和一个消息ID)
-			4.服务端向接收者发送数据包（包含时间戳和消息ID)，并等待接收者发回接收成功数据包；
-			如果超时未收到接收成功包，那么尝试重新发送10次，10次还未发送成功，向发送者返回发送失败数据包。
-			5.如果接收者不在线，存入Session会话储存数据库
-			*/
-			// var decodedPack jsonprovider.SendMessageRequestPack
-			// jsonprovider.ParseJSON(message, &decodedPack)
-			// insertQuery := "INSERT INTO chatdata (conversation_id, user_id, recipient_id, content, timestamp) VALUES (?, ?, ?, ?, ?)"
-			// timestamp := time.Now()
-			// recipientID := decodedPack.TargetID
-			// messageContent := decodedPack.MessageBody
-			// useDB(_SessionDBName)
-			// // _, err = db.Exec(, insertQuery, userID, recipientID, messageContent, timestamp)
-			// if err != nil {
-			// 	logger.Error("保存用户漫游消息时出现错误", err)
-			// }
+			var decodedPack jsonprovider.SendMessageRequestPack
+			jsonprovider.ParseJSON(message, &decodedPack)
+			insertQuery := "INSERT INTO offlinemessages (senderID,receiverID,messageBody,time,messageType) VALUES (?,?,?,?,?)"
+			timestamp := time.Now()
+			recipientID := decodedPack.TargetID
+			messageContent := decodedPack.MessageBody
+			_, err = db.Exec(insertQuery, userID, recipientID, messageContent, timestamp, 0)
+			if err != nil {
+				logger.Error("保存用户离线消息时出现错误", err)
+			}
 
 		case "sendGroupMessage":
 
@@ -240,16 +237,15 @@ func broadcastMessage(message []byte) {
 	}
 }
 
-func sendMessageToUser(userID int, message []byte) {
+func sendMessageToUser(userID int, message []byte) bool {
 
 	clientsLock.Lock()
 	defer clientsLock.Unlock()
 
 	client, ok := clients[userID]
 	if !ok {
-		logger.Error("User not found:", userID)
-		// 处理用户不存在的情况
-		return
+		logger.Warn("用户不在线:", userID)
+		return false
 	}
 
 	err := client.Conn.WriteMessage(websocket.TextMessage, message)
@@ -257,4 +253,6 @@ func sendMessageToUser(userID int, message []byte) {
 		logger.Error("Failed to send message:", err)
 		// 处理发送消息失败的情况
 	}
+
+	return true
 }
