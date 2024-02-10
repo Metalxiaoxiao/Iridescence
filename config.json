@@ -1,5 +1,5 @@
 {
-  "logLevel": 2,
+  "logLevel": 0,
   "port": "8080",
   "DataBaseSettings": {
     "address": "localhost:3306",
@@ -7,6 +7,7 @@
     "password": "Xx20060902zcs"
   },
   "registerRote": "/register",
+  "loginRote": "/login",
   "wsRote": "/ws",
   "uploadRote": "/upload",
   "downloadRote": "/download",

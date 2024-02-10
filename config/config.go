@@ -17,6 +17,7 @@ type Config struct {
 		Password string `json:"password"`
 	}
 	RegisterServiceRote  string `json:"registerRote"`
+	LoginServiceRote     string `json:"loginRote"`
 	WebSocketServiceRote string `json:"wsRote"`
 	UploadServiceRote    string `json:"uploadRote"`
 	DownloadServiceRote  string `json:"downloadRote"`
@@ -123,6 +124,7 @@ func getDefaultConfig() Config {
 			Password: "default_password",
 		},
 		RegisterServiceRote:  "/register",
+		LoginServiceRote:     "/login",
 		WebSocketServiceRote: "/ws",
 		UploadServiceRote:    "/upload",
 		DownloadServiceRote:  "/download",

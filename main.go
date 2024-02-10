@@ -88,6 +88,7 @@ func main() {
 	logger.Info("服务器启动成功！")
 	http.HandleFunc(confData.WebSocketServiceRote, handleWebSocket)
 	http.HandleFunc(confData.RegisterServiceRote, httpService.HandleRegister)
+	http.HandleFunc(confData.LoginServiceRote, httpService.HandleLogin)
 	http.HandleFunc(confData.UploadServiceRote, fileserver.HandleFileUpload)
 	http.HandleFunc(confData.DownloadServiceRote, fileserver.HandleFileDownload)
 	logger.Error(http.ListenAndServe(":"+_PROT, nil))
@@ -155,6 +156,16 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			// 处理发送消息失败的情况
 		}
 	}
+
+	type message struct {
+		id          int
+		messageBody []byte
+		timeStamp   int
+		retryTime   int
+	}
+	//发送状态的消息队列
+	var sendingMessages = make(map[int]*message)
+
 	for {
 		// 读取消息
 		_, message, err := conn.ReadMessage()
@@ -171,15 +182,18 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		case "sendUserMessage":
 			var receivedPack jsonprovider.SendMessageRequestPack
 			jsonprovider.ParseJSON(message, &receivedPack)
-			insertQuery := "INSERT INTO offlinemessages (senderID,receiverID,messageBody,time,messageType) VALUES (?,?,?,?,?)"
-			timestamp := time.Now()
 			recipientID := receivedPack.TargetID
 			messageContent := receivedPack.MessageBody
-			_, err = db.Exec(insertQuery, userID, recipientID, messageContent, timestamp, 0)
-			if err != nil {
-				logger.Error("保存用户离线消息时出现错误", err)
+			// 向指定用户发送消息
+			isSent := sendMessageToUser(recipientID, []byte(messageContent))
+			if !isSent {
+				dbUtils.SaveOfflineMessageToDB(userID, recipientID, messageContent, 0)
+				logger.Warn("用户", recipientID, "不在线，已保存到离线消息")
+			} else {
+				//获取纳秒时间戳
+				timestamp := time.Now().UnixNano()
+				
 			}
-
 		case "sendGroupMessage":
 
 		case "addFriend":
@@ -238,7 +252,6 @@ func broadcastMessage(message []byte) {
 }
 
 func sendMessageToUser(userID int, message []byte) bool {
-
 	clientsLock.Lock()
 	defer clientsLock.Unlock()
 

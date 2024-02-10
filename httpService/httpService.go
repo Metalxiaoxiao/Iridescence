@@ -83,6 +83,10 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func utf8RuneCountInString(s string) int {
 	return len([]rune(s))
 }
