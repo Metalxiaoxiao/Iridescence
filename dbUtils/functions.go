@@ -23,13 +23,23 @@ func SaveUserToDB(username, hashedPassword string, salt []byte) (int64, error) {
 	return userID, nil
 }
 
-func SaveOfflineMessageToDB(userID int, recipientID int, messageContent string, messageType int) {
+// SaveOfflineMessageToDB 返回messageID
+func SaveOfflineMessageToDB(userID int, recipientID int, messageContent string, messageType int) (int, error) {
 	insertQuery := "INSERT INTO offlinemessages (senderID,receiverID,messageBody,time,messageType) VALUES (?,?,?,?,?)"
-	timestamp := time.Now()
-	_, err := db.Exec(insertQuery, userID, recipientID, messageContent, timestamp, 0)
+	timestamp := time.Now().UnixNano() //纳秒事件戳
+	result, err := db.Exec(insertQuery, userID, recipientID, messageContent, timestamp, messageType)
 	if err != nil {
 		logger.Error("保存用户离线消息时出现错误", err)
+		return 0, err
 	}
+
+	messageID, err := result.LastInsertId()
+	if err != nil {
+		logger.Error("获取插入消息的ID时出现错误", err)
+		return 0, err
+	}
+
+	return int(messageID), nil
 }
 
 func GetDBPasswordHash(userID int) (string, []byte, error) {

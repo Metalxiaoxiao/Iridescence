@@ -23,6 +23,10 @@ import (
 var (
 	clients     = make(map[int]*User) // 保存用户ID与用户结构体的映射关系
 	clientsLock sync.Mutex            // 用于保护映射关系的互斥锁
+
+	//用于ACK的消息池
+	processingStateMessages     = make(map[int64]*Message)
+	processingStateMessagesLock sync.Mutex
 )
 
 const (
@@ -41,9 +45,21 @@ type User struct {
 	UserFriendList json.RawMessage `json:"userFriendList"`
 }
 
+// Message 消息结构体,用于临时消息池
+type Message struct {
+	tempID      int
+	id          int
+	messageBody string
+}
+
 var (
 	confData config.Config
 	db       *sql.DB
+)
+
+const (
+	UserMessage = iota
+	SystemMessage
 )
 
 func main() {
@@ -97,7 +113,11 @@ func main() {
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// 完成WebSocket握手
-	upgrader := websocket.Upgrader{}
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
@@ -157,15 +177,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	type message struct {
-		id          int
-		messageBody []byte
-		timeStamp   int
-		retryTime   int
-	}
-	//发送状态的消息队列
-	var sendingMessages = make(map[int]*message)
-
+	//消息处理主循环
 	for {
 		// 读取消息
 		_, message, err := conn.ReadMessage()
@@ -180,20 +192,54 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		jsonprovider.ParseJSON(message, &pre)
 		switch pre.Command {
 		case "sendUserMessage":
+			var state int
+			//获取基本信息
 			var receivedPack jsonprovider.SendMessageRequestPack
 			jsonprovider.ParseJSON(message, &receivedPack)
 			recipientID := receivedPack.TargetID
 			messageContent := receivedPack.MessageBody
-			// 向指定用户发送消息
-			isSent := sendMessageToUser(recipientID, []byte(messageContent))
-			if !isSent {
-				dbUtils.SaveOfflineMessageToDB(userID, recipientID, messageContent, 0)
-				logger.Warn("用户", recipientID, "不在线，已保存到离线消息")
-			} else {
-				//获取纳秒时间戳
-				timestamp := time.Now().UnixNano()
-				
+			requestMessageID := receivedPack.RequestID
+			timeStamp := int(time.Now().UnixNano())
+			//保存到数据库，获取消息ID
+			var messageID int
+			messageID, err = dbUtils.SaveOfflineMessageToDB(userID, recipientID, messageContent, UserMessage)
+			if err != nil {
+				logger.Error("用户", recipientID, "发送信息时数据库插入失败")
+				break
 			}
+			//构造发送数据包
+			sendingPack := &jsonprovider.SendMessageToTargetPack{
+				SenderID:    userID,
+				MessageID:   messageID,
+				MessageBody: messageContent,
+				TimeStamp:   timeStamp,
+			}
+			// 向指定用户发送消息
+			isSent, msgerr := sendMessageToUser(recipientID, []byte(jsonprovider.StringifyJSON(sendingPack)))
+			if !isSent {
+				if msgerr == nil {
+					logger.Info("用户", recipientID, "不在线，已保存到离线消息")
+					state = jsonprovider.UserIsNotOnline
+				} else {
+					state = jsonprovider.ServerSendError
+				}
+			} else {
+				state = jsonprovider.UserReceived
+			}
+			//回发ACK包
+			ACKPack := &jsonprovider.SendMessageRequestPackRes{
+				RequestID: requestMessageID,
+				MessageID: messageID,
+				TimeStamp: timeStamp,
+				State:     state,
+			}
+			_, err := sendMessageToUser(userID, []byte(jsonprovider.StringifyJSON(ACKPack)))
+			if err != nil {
+				logger.Debug("ACK回发错误", err)
+				break
+			}
+		case "sendUserMessageACKRes":
+
 		case "sendGroupMessage":
 
 		case "addFriend":
@@ -251,21 +297,22 @@ func broadcastMessage(message []byte) {
 	}
 }
 
-func sendMessageToUser(userID int, message []byte) bool {
+func sendMessageToUser(userID int, message []byte) (bool, error) {
 	clientsLock.Lock()
 	defer clientsLock.Unlock()
 
 	client, ok := clients[userID]
 	if !ok {
 		logger.Warn("用户不在线:", userID)
-		return false
+		return false, nil
 	}
 
 	err := client.Conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
-		logger.Error("Failed to send message:", err)
+		logger.Error("消息发送失败:", err)
 		// 处理发送消息失败的情况
+		return false, err
 	}
 
-	return true
+	return true, nil
 }

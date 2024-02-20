@@ -94,13 +94,13 @@ func DbInit(confData config.Config) {
 		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到离线群消息数据表，自动创建")
 		createTable := `CREATE TABLE offlinegroupmessages (
-    			senderID int unsigned DEFAULT NULL,
+    			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    			senderID int unsigned NOT NULL,
 				receiverID int unsigned NOT NULL,
-				messageID int unsigned DEFAULT NULL,
 				time datetime DEFAULT NULL,
 				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
-				PRIMARY KEY (receiverID) USING BTREE,
+				PRIMARY KEY (messageID) USING BTREE,
 				KEY idx_senderID (senderID)
 			  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`
 		_, err := db.Exec(createTable)
@@ -112,13 +112,13 @@ func DbInit(confData config.Config) {
 		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到离线消息数据表，自动创建")
 		createTable := `CREATE TABLE offlinemessages (
-    			senderID int unsigned DEFAULT NULL,
+    			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    			senderID int unsigned NOT NULL,
 				receiverID int unsigned NOT NULL,
-				messageID int unsigned DEFAULT NULL,
 				time datetime DEFAULT NULL,
 				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
-				PRIMARY KEY (receiverID) USING BTREE,
+				PRIMARY KEY (messageID) USING BTREE,
 				KEY idx_senderID (senderID)
 			  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`
 		_, err := db.Exec(createTable)
