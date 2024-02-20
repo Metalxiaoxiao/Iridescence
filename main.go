@@ -227,7 +227,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			//构造发送数据包
-			sendingPack := &jsonprovider.SendMessageToTargetRequest{
+			sendingPack := &jsonprovider.SendMessageToTargetPack{
 				SenderID:    userID,
 				MessageID:   messageID,
 				MessageBody: messageContent,
@@ -258,7 +258,55 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		case "sendGroupMessage":
+			var req jsonprovider.SendGroupMessageRequest
+			jsonprovider.ParseJSON(message, &req)
 
+			// 保存消息到数据库
+			timeStamp := int(time.Now().UnixNano())
+			var messageID int
+			messageID, err = dbUtils.SaveOfflineGroupMessageToDB(userID, int(req.GroupID), req.MessageBody, UserMessage)
+			if err != nil {
+				logger.Error("用户发送群消息时数据库插入失败")
+				break
+			}
+
+			// 构造发送数据包
+			sendingPack := &jsonprovider.SendMessageToGroupPack{
+				SenderID:    userID,
+				MessageID:   messageID,
+				MessageBody: req.MessageBody,
+				TimeStamp:   timeStamp,
+			}
+
+			// 获取群成员
+			var groupMembers []int
+			err = db.QueryRow("SELECT groupMembers FROM groupdatatable WHERE groupID = ?", req.GroupID).Scan(&groupMembers)
+			if err != nil {
+				logger.Error("Failed to get group members:", err)
+				return
+			}
+
+			// 向所有群成员发送消息
+			for _, memberID := range groupMembers {
+				_, err := sendMessageToUser(memberID, []byte(jsonprovider.StringifyJSON(sendingPack)))
+				if err != nil {
+					logger.Debug("群消息发送错误", err)
+					break
+				}
+			}
+
+			//回发ACK包
+			ACKPack := &jsonprovider.SendGroupMessageResponse{
+				RequestID: req.RequestID,
+				MessageID: messageID,
+				TimeStamp: timeStamp,
+				State:     jsonprovider.UserReceived,
+			}
+			_, err = sendMessageToUser(userID, []byte(jsonprovider.StringifyJSON(ACKPack)))
+			if err != nil {
+				logger.Debug("群消息ACK回发错误", err)
+				break
+			}
 		case "addFriend":
 			var req jsonprovider.AddFriendRequest
 			jsonprovider.ParseJSON(message, &req)
@@ -315,8 +363,68 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		case "changeFriendSettings":
 
 		case "createGroup":
+			var req jsonprovider.CreateGroupRequest
+			jsonprovider.ParseJSON(message, &req)
 
+			// 在数据库中创建新的群聊
+			res, err := db.Exec("INSERT INTO groupdatatable (groupName, groupExplaination, groupMaster) VALUES (?, ?, ?)", req.GroupName, req.GroupExplaination, userID)
+			if err != nil {
+				logger.Error("Failed to create group:", err)
+				return
+			}
+
+			// 获取新群聊的ID
+			groupID, err := res.LastInsertId()
+			if err != nil {
+				logger.Error("Failed to get group ID:", err)
+				return
+			}
+
+			// 创建新的群聊成员列表
+			groupMembers := []int{userID}
+
+			// 更新群聊的成员列表
+			groupMembersJSON, _ := json.Marshal(groupMembers)
+			_, err = db.Exec("UPDATE groupdatatable SET groupMembers = ? WHERE groupID = ?", groupMembersJSON, groupID)
+			if err != nil {
+				logger.Error("Failed to update group members:", err)
+			}
+
+			// 创建响应
+			responsePack := jsonprovider.CreateGroupResponse{
+				GroupID: groupID,
+				Success: err == nil,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(responsePack)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send group creation response:", err)
+			}
 		case "breakGroup":
+			var req jsonprovider.BreakGroupRequest
+			jsonprovider.ParseJSON(message, &req)
+
+			// 在数据库中删除群聊
+			_, err := db.Exec("DELETE FROM groupdatatable WHERE groupID = ? AND groupMaster = ?", req.GroupID, userID)
+			if err != nil {
+				logger.Error("Failed to break group:", err)
+				return
+			}
+
+			// 创建响应
+			res := jsonprovider.BreakGroupResponse{
+				GroupID: req.GroupID,
+				Success: err == nil,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(res)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send group break response:", err)
+			}
 
 		case "changeGroupSettings":
 
@@ -366,7 +474,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				logger.Error("Failed to get messages:", err)
 				return
 			}
-			defer rows.Close()
 
 			// 读取聊天记录
 			var messages []jsonprovider.Message
@@ -379,7 +486,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				}
 				messages = append(messages, message)
 			}
+			err = rows.Close()
+			if err != nil {
 
+			}
 			// 创建响应
 			res := jsonprovider.GetMessagesWithUserResponse{
 				UserID:   userID,

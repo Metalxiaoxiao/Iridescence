@@ -41,7 +41,7 @@ const (
 	UserReceived
 )
 
-type SendMessageToTargetRequest struct {
+type SendMessageToTargetPack struct {
 	SenderID    int    `json:"senderId"`
 	MessageID   int    `json:"messageId"`
 	MessageBody string `json:"messageBody"`
@@ -101,4 +101,41 @@ type Message struct {
 	Time        int    `json:"time"`
 	MessageBody string `json:"messageBody"`
 	MessageType int    `json:"messageType"`
+}
+
+type CreateGroupRequest struct {
+	GroupName         string `json:"groupName"`
+	GroupExplaination string `json:"groupExplaination"`
+}
+
+type CreateGroupResponse struct {
+	GroupID int64 `json:"groupId"`
+	Success bool  `json:"success"`
+}
+type BreakGroupRequest struct {
+	GroupID int64 `json:"groupId"`
+}
+
+type BreakGroupResponse struct {
+	GroupID int64 `json:"groupId"`
+	Success bool  `json:"success"`
+}
+type SendGroupMessageRequest struct {
+	GroupID     int64  `json:"groupId"`
+	MessageBody string `json:"messageBody"`
+	RequestID   int    `json:"requestId"`
+}
+
+type SendGroupMessageResponse struct {
+	RequestID int `json:"requestId"`
+	MessageID int `json:"messageId"`
+	TimeStamp int `json:"timeStamp"`
+	State     int `json:"state"`
+}
+
+type SendMessageToGroupPack struct {
+	SenderID    int    `json:"senderId"`
+	MessageID   int    `json:"messageId"`
+	MessageBody string `json:"messageBody"`
+	TimeStamp   int    `json:"timeStamp"`
 }

@@ -41,6 +41,23 @@ func SaveOfflineMessageToDB(userID int, recipientID int, messageContent string, 
 
 	return int(messageID), nil
 }
+func SaveOfflineGroupMessageToDB(userID int, recipientID int, messageContent string, messageType int) (int, error) {
+	insertQuery := "INSERT INTO offlinegroupmessages (senderID,receiverID,messageBody,time,messageType) VALUES (?,?,?,?,?)"
+	timestamp := time.Now().UnixNano() //纳秒事件戳
+	result, err := db.Exec(insertQuery, userID, recipientID, messageContent, timestamp, messageType)
+	if err != nil {
+		logger.Error("保存群聊离线消息时出现错误", err)
+		return 0, err
+	}
+
+	messageID, err := result.LastInsertId()
+	if err != nil {
+		logger.Error("获取群聊插入消息的ID时出现错误", err)
+		return 0, err
+	}
+
+	return int(messageID), nil
+}
 
 func GetDBPasswordHash(userID int) (string, []byte, error) {
 	UseDB(db, _BasicChatDBName)
