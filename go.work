@@ -6,7 +6,8 @@ use (
 	./dbUtils
 	./filesystem
 	./hashUtils
+	./httpService
 	./jsonProvider
 	./logger
-	./httpService
+	./websocketService
 )
