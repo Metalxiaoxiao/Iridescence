@@ -24,9 +24,9 @@ var (
 	clients     = make(map[int]*User) // 保存用户ID与用户结构体的映射关系
 	clientsLock sync.Mutex            // 用于保护映射关系的互斥锁
 
-	//用于ACK的消息池
-	processingStateMessages     = make(map[int64]*Message)
-	processingStateMessagesLock sync.Mutex
+	////用于ACK的消息池
+	//processingStateMessages     = make(map[int64]*Message)
+	//processingStateMessagesLock sync.Mutex
 )
 
 const (
@@ -45,12 +45,12 @@ type User struct {
 	UserFriendList json.RawMessage `json:"userFriendList"`
 }
 
-// Message 消息结构体,用于临时消息池
-type Message struct {
-	tempID      int
-	id          int
-	messageBody string
-}
+//Message 消息结构体,用于临时消息池
+//type Message struct {
+//	tempID      int
+//	id          int
+//	messageBody string
+//}
 
 var (
 	confData config.Config
@@ -132,8 +132,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	for !Logined {
 		// 用户登录过程
 		// 在此处获取用户ID，并保存到映射关系中
-		var res jsonprovider.LoginPackageRes
-		var p jsonprovider.LoginPackage
+		var res jsonprovider.LoginResponse
+		var p jsonprovider.LoginRequest
 		err = conn.ReadJSON(&p)
 		logger.Debug(p)
 		if err != nil {
@@ -149,22 +149,41 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		tryingPasswordHash := hashUtils.HashPassword(p.Password, passwordSalt)
 		logger.Debug("尝试哈希", tryingPasswordHash, "实际哈希", passwordHash)
 		if tryingPasswordHash == passwordHash {
-			clientsLock.Lock()
-
-			clients[userID] = &User{
-				UserID: p.Userid,
-				Conn:   conn,
+			// 从数据库中获取用户信息
+			var username, userAvatar, userNote string
+			var userPermission uint
+			var userFriendList json.RawMessage
+			err := db.QueryRow("SELECT userName, userAvatar, userNote, userPermission, userFriendList FROM userdatatable WHERE userID = ?", userID).Scan(&username, &userAvatar, &userNote, &userPermission, &userFriendList)
+			if err != nil {
+				logger.Error("获取用户数据失败:", err)
+				return
 			}
+
+			// 创建新的User结构体
+			user := &User{
+				UserID:         userID,
+				Conn:           conn,
+				Username:       username,
+				UserName:       username,
+				UserAvatar:     userAvatar,
+				UserNote:       userNote,
+				UserPermission: userPermission,
+				UserFriendList: userFriendList,
+			}
+
+			// 保存到clients map中
+			clientsLock.Lock()
+			clients[userID] = user
 			clientsLock.Unlock()
-			res = jsonprovider.LoginPackageRes{
+
+			res = jsonprovider.LoginResponse{
 				State:   true,
 				Message: "登录成功",
 			}
 			logger.Debug("用户", userID, "登录成功")
 			Logined = true
-
 		} else {
-			res = jsonprovider.LoginPackageRes{
+			res = jsonprovider.LoginResponse{
 				State:   false,
 				Message: "登录失败",
 			}
@@ -194,7 +213,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		case "sendUserMessage":
 			var state int
 			//获取基本信息
-			var receivedPack jsonprovider.SendMessageRequestPack
+			var receivedPack jsonprovider.SendMessageRequest
 			jsonprovider.ParseJSON(message, &receivedPack)
 			recipientID := receivedPack.TargetID
 			messageContent := receivedPack.MessageBody
@@ -208,7 +227,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			//构造发送数据包
-			sendingPack := &jsonprovider.SendMessageToTargetPack{
+			sendingPack := &jsonprovider.SendMessageToTargetRequest{
 				SenderID:    userID,
 				MessageID:   messageID,
 				MessageBody: messageContent,
@@ -227,7 +246,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				state = jsonprovider.UserReceived
 			}
 			//回发ACK包
-			ACKPack := &jsonprovider.SendMessageRequestPackRes{
+			ACKPack := &jsonprovider.SendMessageResponse{
 				RequestID: requestMessageID,
 				MessageID: messageID,
 				TimeStamp: timeStamp,
@@ -238,14 +257,61 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				logger.Debug("ACK回发错误", err)
 				break
 			}
-		case "sendUserMessageACKRes":
-
 		case "sendGroupMessage":
 
 		case "addFriend":
+			var req jsonprovider.AddFriendRequest
+			jsonprovider.ParseJSON(message, &req)
 
+			// 获取用户的朋友列表
+			friendList := clients[userID].UserFriendList
+			var friends []int
+			err := json.Unmarshal(friendList, &friends)
+			if err != nil {
+				break
+			}
+
+			// 添加新朋友
+			friends = append(friends, req.FriendID)
+
+			// 更新朋友列表
+			newFriendList, _ := json.Marshal(friends)
+			clients[userID].UserFriendList = newFriendList
+
+			// 更新数据库
+			_, err = db.Exec("UPDATE userdatatable SET userFriendList = ? WHERE userID = ?", newFriendList, userID)
+			if err != nil {
+				logger.Error("更新好友数据失败:", err)
+			}
 		case "deleteFriend":
+			var req jsonprovider.DeleteFriendRequest
+			jsonprovider.ParseJSON(message, &req)
 
+			// 获取用户的朋友列表
+			friendList := clients[userID].UserFriendList
+			var friends []int
+			err := json.Unmarshal(friendList, &friends)
+			if err != nil {
+				break
+			}
+
+			// 删除朋友
+			for i, friend := range friends {
+				if friend == req.FriendID {
+					friends = append(friends[:i], friends[i+1:]...)
+					break
+				}
+			}
+
+			// 更新朋友列表
+			newFriendList, _ := json.Marshal(friends)
+			clients[userID].UserFriendList = newFriendList
+
+			// 更新数据库
+			_, err = db.Exec("UPDATE userdatatable SET userFriendList = ? WHERE userID = ?", newFriendList, userID)
+			if err != nil {
+				logger.Error("Failed to update friend list:", err)
+			}
 		case "changeFriendSettings":
 
 		case "createGroup":
@@ -255,21 +321,108 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		case "changeGroupSettings":
 
 		case "getUserData":
+			var req jsonprovider.GetUserDataRequest
+			jsonprovider.ParseJSON(message, &req)
 
+			// 从数据库中获取用户数据
+			var username, userAvatar, userNote string
+			var userPermission uint
+			var userFriendList json.RawMessage
+			err := db.QueryRow("SELECT userName, userAvatar, userNote, userPermission, userFriendList FROM userdatatable WHERE userID = ?", req.UserID).Scan(&username, &userAvatar, &userNote, &userPermission, &userFriendList)
+			if err != nil {
+				logger.Error("Failed to get user data:", err)
+				return
+			}
+
+			// 创建响应
+			res := jsonprovider.GetUserDataResponse{
+				UserID:         req.UserID,
+				UserName:       username,
+				UserAvatar:     userAvatar,
+				UserNote:       userNote,
+				UserPermission: userPermission,
+				UserFriendList: userFriendList,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(res)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send user data:", err)
+			}
 		case "messageEvent":
 
 		case "userStateEvent":
 
 		case "getUnreceivedMessage":
 
-		case "getSessionMessage":
+		case "getMessagesWithUser":
+			var req jsonprovider.GetMessagesWithUserRequest
+			jsonprovider.ParseJSON(message, &req)
+
+			// 从数据库中查询聊天记录
+			rows, err := db.Query("SELECT messageID, senderID, receiverID, time, messageBody, messageType FROM offlinemessages WHERE ((senderID = ? AND receiverID = ?) OR (senderID = ? AND receiverID = ?)) AND time BETWEEN ? AND ?", userID, req.OtherUserID, req.OtherUserID, userID, req.StartTime, req.EndTime)
+			if err != nil {
+				logger.Error("Failed to get messages:", err)
+				return
+			}
+			defer rows.Close()
+
+			// 读取聊天记录
+			var messages []jsonprovider.Message
+			for rows.Next() {
+				var message jsonprovider.Message
+				err := rows.Scan(&message.MessageID, &message.SenderID, &message.ReceiverID, &message.Time, &message.MessageBody, &message.MessageType)
+				if err != nil {
+					logger.Error("Failed to read message:", err)
+					return
+				}
+				messages = append(messages, message)
+			}
+
+			// 创建响应
+			res := jsonprovider.GetMessagesWithUserResponse{
+				UserID:   userID,
+				Messages: messages,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(res)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send message history:", err)
+			}
 
 		case "changeSettings":
 
 		case "postOpreation":
 
 		case "changeAvatar":
+			var req jsonprovider.ChangeAvatarRequest
+			jsonprovider.ParseJSON(message, &req)
 
+			// 更新用户结构体
+			clients[userID].UserAvatar = req.NewAvatar
+
+			// 更新数据库
+			_, err := db.Exec("UPDATE userdatatable SET userAvatar = ? WHERE userID = ?", req.NewAvatar, userID)
+			if err != nil {
+				logger.Error("Failed to update avatar:", err)
+			}
+
+			// 创建响应
+			res := jsonprovider.ChangeAvatarResponse{
+				UserID:    userID,
+				NewAvatar: req.NewAvatar,
+				Success:   err == nil,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(res)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send avatar change response:", err)
+			}
 		}
 
 	}
