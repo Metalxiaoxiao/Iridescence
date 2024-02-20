@@ -26,7 +26,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 从请求中获取注册表单数据
-	username := r.FormValue("username")
+	username := r.FormValue("userName")
 	password := r.FormValue("password")
 
 	// 验证表单数据是否有效
