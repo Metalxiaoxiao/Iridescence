@@ -3,8 +3,6 @@ name: Go
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
 
@@ -22,29 +20,42 @@ jobs:
       id: get_version
       run: echo "::set-output name=VERSION::$(grep '_VERSION' main.go | cut -d'"' -f2)"
 
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        if git rev-parse "v${{ steps.get_version.outputs.VERSION }}" >/dev/null 2>&1; then
+          echo "::set-output name=EXISTS::true"
+        else
+          echo "::set-output name=EXISTS::false"
+        fi
+
     - name: Build
-      run: go build -v -o Iridescence-${{ steps.get_version.outputs.VERSION }}.exe ./...
+      if: steps.check_tag.outputs.EXISTS == 'false'
+      run: go build -v -o Iridescence-${{ steps.get_version.outputs.VERSION }} ./...
 
     - name: Test
+      if: steps.check_tag.outputs.EXISTS == 'false'
       run: go test -v ./...
 
     - name: Create Release
       id: create_release
+      if: steps.check_tag.outputs.EXISTS == 'false'
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.get_version.outputs.VERSION }}
-        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        tag_name: v${{ steps.get_version.outputs.VERSION }}
+        release_name: Release v${{ steps.get_version.outputs.VERSION }}
         draft: false
         prerelease: false
 
     - name: Upload Release Asset
+      if: steps.check_tag.outputs.EXISTS == 'false'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./Iridescence-${{ steps.get_version.outputs.VERSION }}.exe
-        asset_name: Iridescence-${{ steps.get_version.outputs.VERSION }}.exe
+        asset_path: ./Iridescence-${{ steps.get_version.outputs.VERSION }}
+        asset_name: Iridescence-${{ steps.get_version.outputs.VERSION }}
         asset_content_type: application/octet-stream
