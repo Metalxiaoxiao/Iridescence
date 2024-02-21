@@ -7,7 +7,10 @@ on:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
 
@@ -39,7 +42,7 @@ jobs:
 
     - name: Create Release
       id: create_release
-      if: steps.check_tag.outputs.EXISTS == 'false'
+      if: steps.check_tag.outputs.EXISTS == 'false' && matrix.os == 'ubuntu-latest'
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,5 +60,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./Iridescence-${{ steps.get_version.outputs.VERSION }}
-        asset_name: Iridescence-${{ steps.get_version.outputs.VERSION }}
+        asset_name: Iridescence-${{ steps.get_version.outputs.VERSION }}-${{ matrix.os }}
         asset_content_type: application/octet-stream
