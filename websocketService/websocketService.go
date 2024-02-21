@@ -279,8 +279,23 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			// 更新数据库
 			_, err = db.Exec("UPDATE userdatatable SET userFriendList = ? WHERE userID = ?", newFriendList, userID)
 			if err != nil {
-				logger.Error("更新好友数据失败:", err)
+				logger.Error("Failed to update friend list:", err)
 			}
+
+			// 创建响应
+			res := jsonprovider.AddFriendResponse{
+				UserID:   userID,
+				FriendID: req.FriendID,
+				Success:  err == nil,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(res)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send add friend response:", err)
+			}
+
 		case "deleteFriend":
 			var req jsonprovider.DeleteFriendRequest
 			jsonprovider.ParseJSON(message, &req)
@@ -310,6 +325,21 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				logger.Error("Failed to update friend list:", err)
 			}
+
+			// 创建响应
+			res := jsonprovider.DeleteFriendResponse{
+				UserID:   userID,
+				FriendID: req.FriendID,
+				Success:  err == nil,
+			}
+
+			// 发送响应
+			message := jsonprovider.StringifyJSON(res)
+			_, err = sendMessageToUser(userID, []byte(message))
+			if err != nil {
+				logger.Error("Failed to send delete friend response:", err)
+			}
+
 		case "changeFriendSettings":
 
 		case "createGroup":

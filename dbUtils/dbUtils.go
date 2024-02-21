@@ -34,7 +34,8 @@ func GetDBPtr() *sql.DB {
 }
 
 func DbInit(confData config.Config) {
-	db, err := sql.Open("mysql", confData.DataBaseSettings.Account+":"+confData.DataBaseSettings.Password+"@tcp("+confData.DataBaseSettings.Address+")/")
+	var err error
+	db, err = sql.Open("mysql", confData.DataBaseSettings.Account+":"+confData.DataBaseSettings.Password+"@tcp("+confData.DataBaseSettings.Address+")/")
 	if err != nil {
 		logger.Error(err)
 	} else {
@@ -97,7 +98,7 @@ func DbInit(confData config.Config) {
     			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
     			senderID int unsigned NOT NULL,
 				receiverID int unsigned NOT NULL,
-				time datetime DEFAULT NULL,
+				time BIGINT unsigned DEFAULT NULL,
 				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
 				PRIMARY KEY (messageID) USING BTREE,
@@ -115,7 +116,7 @@ func DbInit(confData config.Config) {
     			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
     			senderID int unsigned NOT NULL,
 				receiverID int unsigned NOT NULL,
-				time datetime DEFAULT NULL,
+				time BIGINT unsigned DEFAULT NULL,
 				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
 				PRIMARY KEY (messageID) USING BTREE,

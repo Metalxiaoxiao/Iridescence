@@ -139,3 +139,15 @@ type SendMessageToGroupPack struct {
 	MessageBody string `json:"messageBody"`
 	TimeStamp   int    `json:"timeStamp"`
 }
+
+type AddFriendResponse struct {
+	UserID   int  `json:"userId"`
+	FriendID int  `json:"friendId"`
+	Success  bool `json:"success"`
+}
+
+type DeleteFriendResponse struct {
+	UserID   int  `json:"userId"`
+	FriendID int  `json:"friendId"`
+	Success  bool `json:"success"`
+}
