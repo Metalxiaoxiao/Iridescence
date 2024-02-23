@@ -1,4 +1,4 @@
-## API 文档
+## WebSocket API 文档
 
 以下是 Iridencense 支持的 WebSocket 命令和对应的 JSON 数据格式：
 
@@ -222,5 +222,61 @@
   "state": 1
 }
 ```
+
+# HTTP API 文档
+
+以下是 Iridencense HTTP API 支持的请求和响应：
+
+## 注册用户
+
+- **URL**: `/register`
+- **Method**: `POST`
+- **Params**:
+    - `userName`: 用户名，不超过10个字符
+    - `password`: 密码，长度在8到100个字符之间，必须包含大小写字母和数字
+- **Response**: 用户唯一的自增ID
+
+## 用户登录
+
+- **URL**: `/login`
+- **Method**: `POST`
+- **Params**:
+    - `userId`: 用户ID
+    - `password`: 用户密码
+- **Response**: 用户的 token
+
+## 获取用户信息
+
+- **URL**: `/request`
+- **Method**: `POST`
+- **Params**:
+    - `token`: 用户的 token
+    - `command`: 指令，可以是`getUserData`或`getUserDataByID`
+    - `target` (可选): 目标用户的ID，仅在`command`为`getUserDataByID`时使用
+- **Response**: 用户的信息，包括用户名、头像、备注、权限和好友列表
+
+## 验证用户 token
+
+- **URL**: `/request`
+- **Method**: `POST`
+- **Params**:
+    - `token`: 服务器的 token
+    - `command`: 指令，必须为`verifyToken`
+    - `targetToken`: 要验证的用户 token
+- **Response**: 用户的信息，包括用户名、头像、备注、权限和好友列表
+
+## 错误响应
+
+- **400 Bad Request**: 请求的参数无效或缺失
+- **401 Unauthorized**: 提供的 token 无效
+- **500 Internal Server Error**: 服务器内部错误
+
+## 注意
+
+- 所有的请求都必须是 POST 请求
+- 所有的参数都应该在请求体中以表单的形式提供
+- 所有的响应都是纯文本，除了获取用户信息的响应是 JSON 格式
+- 用户的 token 在登录成功后由服务器生成并返回，之后的所有请求都应该在请求头中提供这个 token
+- 服务器的 token 应该在配置文件中提供，用于验证用户 token 的请求
 
 API暂不完善，仍在开发中

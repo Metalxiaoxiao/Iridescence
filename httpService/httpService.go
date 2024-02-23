@@ -205,14 +205,26 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	if user.UserPermission > config.PermissionServer {
 		//Server命令
 		switch command {
+		case "verifyToken":
+			targetToken := r.FormValue("targetToken")
+			logger.Debug("远端服务器尝试验证用户token", targetToken)
+			targetUser, ok := tokens[targetToken]
 
+			// 验证token是否有效
+			if !CheckTokenExpiry(token) || ok == false {
+				w.WriteHeader(http.StatusUnauthorized)
+				fmtPrintF(w, "Invalid token")
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			jsonprovider.WriteJSONToWriter(w, targetUser)
 		}
 	}
 
 	switch command {
 	case "getUserData":
 		// 从数据库中获取用户信息
-		user, err := dbUtils.GetUserFromDB(user.UserID)
+		targetUser, err := dbUtils.GetUserFromDB(user.UserID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmtPrintF(w, "Failed to get user data")
@@ -221,12 +233,12 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 		// 发送响应
 		w.WriteHeader(http.StatusOK)
-		jsonprovider.WriteJSONToWriter(w, user)
+		jsonprovider.WriteJSONToWriter(w, targetUser)
 	case "getUserDataByID":
 		// 从数据库中获取用户信息
 		targetUserID := r.FormValue("target")
 		targetUserIDint, _ := strconv.Atoi(targetUserID)
-		user, err := dbUtils.GetUserFromDB(targetUserIDint)
+		targetUser, err := dbUtils.GetUserFromDB(targetUserIDint)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmtPrintF(w, "Failed to get user data")
@@ -235,7 +247,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 		// 发送响应
 		w.WriteHeader(http.StatusOK)
-		jsonprovider.WriteJSONToWriter(w, user)
+		jsonprovider.WriteJSONToWriter(w, targetUser)
 	}
 }
 

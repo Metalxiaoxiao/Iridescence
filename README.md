@@ -5,12 +5,14 @@ Iridencense 是一个高效稳定的聊天服务器，使用 Go 语言编写，�
 ## 功能
 
 - 用户登录：用户可以通过 HTTP 请求进行登录，登录成功后将返回一个 token，用户可以使用这个 token 进行后续的操作。
+- 第三方登录：第三方服务器可以通过设置authorizedToken来认证已登录的用户
 - 发送消息：用户可以通过 WebSocket 连接发送消息。
 - 添加朋友：用户可以添加其他用户为朋友，添加成功后将可以看到朋友的在线状态，并可以向朋友发送消息。
 - 群聊功能：用户可以创建群聊，群聊可以包含多个用户，用户可以向群聊发送消息。
-- 更改设置：用户可以更改自己的设置，包括用户名、头像、权限等。
 
 ## 安装
+
+提示:安装前请先配置MySQL服务器
 
 1. 克隆这个仓库到你的本地机器上。
 
@@ -46,18 +48,30 @@ go build .
 
 ```json
 {
-    "LogLevel": "info",
-    "DataBaseSettings": {
-        "Account": "default_account",
-        "Password": "default_password",
-        "Address": "localhost:3306"
-    },
-    "Port": "8080",
-    "WebSocketServiceRote": "/ws",
-    "RegisterServiceRote": "/register",
-    "LoginServiceRote": "/login",
-    "UploadServiceRote": "/upload",
-    "DownloadServiceRote": "/download"
+  "logLevel": 0,
+  "port": "8080",
+  "DataBaseSettings": {
+    "address": "localhost:3306",
+    "account": "root",
+    "password": "yourPassword"
+  },
+  "Rotes": {
+    "registerRote": "/register",
+    "requestRote": "/request",
+    "loginRote": "/login",
+    "wsRote": "/ws",
+    "uploadRote": "/upload",
+    "downloadRote": "/download"
+  },
+  "WebsocketConnBufferSize": 0,
+  "saltLength": 0,
+  "tokenLength": 0,
+  "authorizedServerTokens": [
+    "token1",
+    "token2",
+    "token3"
+  ],
+  "TokenExpiryHours": 0
 }
 ```
 
