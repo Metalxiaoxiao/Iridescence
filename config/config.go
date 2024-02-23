@@ -75,7 +75,7 @@ func LoadConfig(filename string) (Config, error) {
 	if err != nil {
 		return config, fmt.Errorf("无法解析配置文件: %v", err)
 	}
-
+	CheckConfigIntegrity(filename, &config)
 	return config, nil
 }
 
@@ -100,6 +100,89 @@ func WriteConfig(filename string, config Config) error {
 	}
 
 	return nil
+}
+
+// CheckConfigIntegrity 检查配置文件的完整性，并自动补充缺少的字段
+func CheckConfigIntegrity(filename string, config *Config) {
+	// 将配置转换为 map
+	configMap := structToMap(*config)
+
+	// 获取默认配置
+	defaultConfig := getDefaultConfig()
+
+	// 将默认配置转换为 map
+	defaultConfigMap := structToMap(defaultConfig)
+
+	// 检查缺少的字段并自动补充
+	checkAndFillMissingFields(configMap, defaultConfigMap)
+
+	// 将 map 转换回 Config 结构体
+	mapToStruct(configMap, config)
+
+	// 将补充后的配置写入文件
+	err := WriteConfig(filename, *config)
+	if err != nil {
+		logger.Error("无法写入配置文件: ", err)
+	}
+}
+
+// structToMap 将结构体转换为 map
+func structToMap(s interface{}) map[string]interface{} {
+	bytes, _ := json.Marshal(s)
+	var result map[string]interface{}
+	err := json.Unmarshal(bytes, &result)
+	if err != nil {
+		return nil
+	}
+	return result
+}
+
+// mapToStruct 将 map 转换为 Config 结构体
+func mapToStruct(m map[string]interface{}, s *Config) {
+	bytes, _ := json.Marshal(m)
+	err := json.Unmarshal(bytes, &s)
+	if err != nil {
+		return
+	}
+}
+
+// isEmptyValue 检查值是否为零值
+func isEmptyValue(v interface{}) bool {
+	switch v := v.(type) {
+	case bool:
+		return !v
+	case int, int8, int16, int32, int64:
+		return v == 0
+	case uint, uint8, uint16, uint32, uint64, uintptr:
+		return v == 0
+	case float32, float64:
+		return v == 0
+	case string:
+		return v == ""
+	case []interface{}:
+		return len(v) == 0
+	case map[string]interface{}:
+		return len(v) == 0
+	case nil:
+		return true
+	default:
+		return false
+	}
+}
+
+// checkAndFillMissingFields 检查并填充缺少的字段
+func checkAndFillMissingFields(target, source map[string]interface{}) {
+	for key, sourceValue := range source {
+		if targetValue, ok := target[key]; !ok || isEmptyValue(targetValue) {
+			target[key] = sourceValue
+		} else {
+			// 如果字段是嵌套的 map，递归检查
+			if targetMap, ok := targetValue.(map[string]interface{}); ok {
+				sourceMap := sourceValue.(map[string]interface{})
+				checkAndFillMissingFields(targetMap, sourceMap)
+			}
+		}
+	}
 }
 
 // writeConfigToFile 将配置写入文件

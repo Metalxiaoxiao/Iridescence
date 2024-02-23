@@ -6,10 +6,21 @@
     "account": "root",
     "password": "Xx20060902zcs"
   },
-  "registerRote": "/register",
-  "loginRote": "/login",
-  "wsRote": "/ws",
-  "uploadRote": "/upload",
-  "downloadRote": "/download",
-  "SaltLength": 8
+  "Rotes": {
+    "registerRote": "/register",
+    "requestRote": "/request",
+    "loginRote": "/login",
+    "wsRote": "/ws",
+    "uploadRote": "/upload",
+    "downloadRote": "/download"
+  },
+  "WebsocketConnBufferSize": 0,
+  "saltLength": 0,
+  "tokenLength": 0,
+  "authorizedServerTokens": [
+    "token1",
+    "token2",
+    "token3"
+  ],
+  "TokenExpiryHours": 0
 }

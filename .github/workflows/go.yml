@@ -21,10 +21,12 @@ jobs:
 
     - name: Get version
       id: get_version
+      shell: bash
       run: echo "::set-output name=VERSION::$(grep '_VERSION' main.go | cut -d'"' -f2)"
 
     - name: Check if tag exists
       id: check_tag
+      shell: bash
       run: |
         if git rev-parse "v${{ steps.get_version.outputs.VERSION }}" >/dev/null 2>&1; then
           echo "::set-output name=EXISTS::true"
@@ -34,10 +36,12 @@ jobs:
 
     - name: Build
       if: steps.check_tag.outputs.EXISTS == 'false'
+      shell: bash
       run: go build -v -o Iridescence-${{ steps.get_version.outputs.VERSION }} ./...
 
     - name: Test
       if: steps.check_tag.outputs.EXISTS == 'false'
+      shell: bash
       run: go test -v ./...
 
     - name: Create Release

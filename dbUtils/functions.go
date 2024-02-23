@@ -1,6 +1,7 @@
 package dbUtils
 
 import (
+	"config"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -11,8 +12,8 @@ import (
 
 func SaveUserToDB(username, hashedPassword string, salt []byte) (int64, error) {
 	UseDB(db, _BasicChatDBName)
-	query := "INSERT INTO userdatatable (userName, userPasswordHashValue, passwordSalt) VALUES (?, ?, ?)"
-	result, err := db.Exec(query, username, hashedPassword, salt)
+	query := "INSERT INTO userdatatable (userName, userPasswordHashValue, passwordSalt, userAvatar, userFriendList, userGroupList, userHomePageData, userNote, userPermission, userSettings) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+	result, err := db.Exec(query, username, hashedPassword, salt, nil, nil, nil, nil, nil, config.PermissionOrdinaryUser, nil)
 	if err != nil {
 		return 0, err
 	}

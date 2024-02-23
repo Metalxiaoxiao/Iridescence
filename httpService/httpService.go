@@ -185,28 +185,34 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// 从请求中获取token和用户ID
 	token := r.FormValue("token")
-	userIDStr := r.FormValue("userId")
 	command := r.FormValue("command")
 
+	user, ok := tokens[token]
+
 	// 验证token是否有效
-	if !CheckTokenExpiry(token) {
+	if !CheckTokenExpiry(token) || ok == false {
 		w.WriteHeader(http.StatusUnauthorized)
 		fmtPrintF(w, "Invalid token")
 		return
 	}
 
 	// 验证用户ID是否有效
-	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmtPrintF(w, "Invalid userID")
 		return
 	}
+	if user.UserPermission > config.PermissionServer {
+		//Server命令
+		switch command {
+
+		}
+	}
 
 	switch command {
 	case "getUserData":
 		// 从数据库中获取用户信息
-		user, err := dbUtils.GetUserFromDB(userID)
+		user, err := dbUtils.GetUserFromDB(user.UserID)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmtPrintF(w, "Failed to get user data")

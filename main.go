@@ -63,6 +63,7 @@ func main() {
 	http.HandleFunc(confData.Rotes.WebSocketServiceRote, wsService.HandleWebSocket)
 	http.HandleFunc(confData.Rotes.RegisterServiceRote, httpService.HandleRegister)
 	http.HandleFunc(confData.Rotes.LoginServiceRote, httpService.HandleLogin)
+	http.HandleFunc(confData.Rotes.RequestServiceRote, httpService.HandleRequest)
 	http.HandleFunc(confData.Rotes.UploadServiceRote, fileserver.HandleFileUpload)
 	http.HandleFunc(confData.Rotes.DownloadServiceRote, fileserver.HandleFileDownload)
 	logger.Error(http.ListenAndServe(":"+_PROT, nil))
