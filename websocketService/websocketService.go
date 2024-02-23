@@ -24,16 +24,7 @@ var (
 )
 
 // User 用户结构体
-type User struct {
-	UserID         int
-	Conn           *websocket.Conn
-	Username       string
-	UserName       string          `json:"userName"`
-	UserAvatar     string          `json:"userAvatar"`
-	UserNote       string          `json:"userNote"`
-	UserPermission uint            `json:"userPermission"`
-	UserFriendList json.RawMessage `json:"userFriendList"`
-}
+type User jsonprovider.User
 
 var (
 	configData config.Config
@@ -413,28 +404,18 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			jsonprovider.ParseJSON(message, &req)
 
 			// 从数据库中获取用户数据
-			var username, userAvatar, userNote string
-			var userPermission uint
-			var userFriendList json.RawMessage
-			err := db.QueryRow("SELECT userName, userAvatar, userNote, userPermission, userFriendList FROM userdatatable WHERE userID = ?", req.UserID).Scan(&username, &userAvatar, &userNote, &userPermission, &userFriendList)
+			user, err := dbUtils.GetUserFromDB(userID)
 			if err != nil {
 				logger.Error("Failed to get user data:", err)
 				return
 			}
 
 			// 创建响应
-			res := jsonprovider.GetUserDataResponse{
-				UserID:         req.UserID,
-				UserName:       username,
-				UserAvatar:     userAvatar,
-				UserNote:       userNote,
-				UserPermission: userPermission,
-				UserFriendList: userFriendList,
-			}
+			res := jsonprovider.GetUserDataResponse(*user)
 
 			// 发送响应
 			message := jsonprovider.StringifyJSON(res)
-			_, err = sendMessageToUser(userID, []byte(message))
+			_, err = sendMessageToUser(userID, message)
 			if err != nil {
 				logger.Error("Failed to send user data:", err)
 			}

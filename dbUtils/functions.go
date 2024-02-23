@@ -2,7 +2,9 @@ package dbUtils
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	jsonprovider "jsonProvider"
 	"logger"
 	"time"
 )
@@ -77,4 +79,27 @@ func GetDBPasswordHash(userID int) (string, []byte, error) {
 	}
 
 	return passwordHash, salt, nil
+}
+func GetUserFromDB(userID int) (*User, error) {
+	// 从数据库中获取用户信息
+	var username, userAvatar, userNote string
+	var userPermission uint
+	var userFriendList json.RawMessage
+	err := db.QueryRow("SELECT userName, userAvatar, userNote, userPermission, userFriendList FROM basic_chat_base.userdatatable WHERE userID = ?", userID).Scan(&username, &userAvatar, &userNote, &userPermission, &userFriendList)
+	if err != nil {
+		logger.Error("获取用户数据失败:", err)
+		return nil, err
+	}
+
+	// 创建 User 结构体
+	user := &jsonprovider.User{
+		UserID:         userID,
+		Username:       username,
+		UserAvatar:     userAvatar,
+		UserNote:       userNote,
+		UserPermission: userPermission,
+		UserFriendList: userFriendList,
+	}
+
+	return user, nil
 }

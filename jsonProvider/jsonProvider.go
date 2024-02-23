@@ -1,6 +1,7 @@
 package jsonprovider
 
 import (
+	"io"
 	"logger"
 
 	jsoniter "github.com/json-iterator/go"
@@ -25,4 +26,14 @@ func StringifyJSON(data interface{}) []byte {
 	}
 
 	return jsonData
+}
+func WriteJSONToWriter(writer io.Writer, data interface{}) {
+	// 创建 JSON 编码器
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
+	// 编码为 JSON 数据并写入到 io.Writer 中
+	err := json.NewEncoder(writer).Encode(data)
+	if err != nil {
+		logger.Error("JSON编码错误", err)
+	}
 }

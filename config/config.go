@@ -16,12 +16,15 @@ type Config struct {
 		Account  string `json:"account"`
 		Password string `json:"password"`
 	}
-	RegisterServiceRote  string `json:"registerRote"`
-	LoginServiceRote     string `json:"loginRote"`
-	WebSocketServiceRote string `json:"wsRote"`
-	UploadServiceRote    string `json:"uploadRote"`
-	DownloadServiceRote  string `json:"downloadRote"`
-	SaltLength           int
+	RegisterServiceRote    string `json:"registerRote"`
+	LoginServiceRote       string `json:"loginRote"`
+	WebSocketServiceRote   string `json:"wsRote"`
+	UploadServiceRote      string `json:"uploadRote"`
+	DownloadServiceRote    string `json:"downloadRote"`
+	SaltLength             int
+	TokenLength            int
+	AuthorizedServerTokens []string `json:"authorizedServerTokens"`
+	TokenExpiryHours       float64
 }
 
 // LoadConfig 从指定的文件路径加载配置文件，如果文件不存在则创建并写入默认配置
@@ -33,7 +36,12 @@ func LoadConfig(filename string) (Config, error) {
 	if err != nil {
 		return config, fmt.Errorf("无法打开配置文件: %v", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			logger.Error("打开配置文件失败", err)
+		}
+	}(file)
 
 	// 获取文件的状态信息
 	fileInfo, err := file.Stat()
@@ -74,7 +82,12 @@ func WriteConfig(filename string, config Config) error {
 	if err != nil {
 		return fmt.Errorf("无法打开配置文件: %v", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			logger.Error("关闭配置文件失败", err)
+		}
+	}(file)
 
 	// 写入配置文件
 	err = writeConfigToFile(file, config)
@@ -123,12 +136,15 @@ func getDefaultConfig() Config {
 			Account:  "default_account",
 			Password: "default_password",
 		},
-		RegisterServiceRote:  "/register",
-		LoginServiceRote:     "/login",
-		WebSocketServiceRote: "/ws",
-		UploadServiceRote:    "/upload",
-		DownloadServiceRote:  "/download",
-		SaltLength:           8,
+		RegisterServiceRote:    "/register",
+		LoginServiceRote:       "/login",
+		WebSocketServiceRote:   "/ws",
+		UploadServiceRote:      "/upload",
+		DownloadServiceRote:    "/download",
+		SaltLength:             8,
+		TokenLength:            256,
+		TokenExpiryHours:       24.00,
+		AuthorizedServerTokens: []string{"token1", "token2", "token3"},
 	}
 
 	return defaultConfig
