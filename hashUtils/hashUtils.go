@@ -34,3 +34,11 @@ func HashPassword(password string, salt []byte) string {
 	// 返回哈希值的十六进制表示
 	return hex.EncodeToString(hashValue)
 }
+
+func GenerateRandomToken() (string, error) {
+	bytes := make([]byte, 32) // 256 bits
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
