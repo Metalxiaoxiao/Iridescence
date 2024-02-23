@@ -1,6 +1,7 @@
 package main
 
 import (
+	"commandSystem"
 	"config"
 	"dbUtils"
 	fileserver "filesystem"
@@ -60,6 +61,8 @@ func main() {
 	wsService.LoadDB(db)
 
 	logger.Info("服务器启动成功！")
+	commandSystem.StartListening()
+	//启动命令监听
 	http.HandleFunc(confData.Rotes.WebSocketServiceRote, wsService.HandleWebSocket)
 	http.HandleFunc(confData.Rotes.RegisterServiceRote, httpService.HandleRegister)
 	http.HandleFunc(confData.Rotes.LoginServiceRote, httpService.HandleLogin)
@@ -67,4 +70,5 @@ func main() {
 	http.HandleFunc(confData.Rotes.UploadServiceRote, fileserver.HandleFileUpload)
 	http.HandleFunc(confData.Rotes.DownloadServiceRote, fileserver.HandleFileDownload)
 	logger.Error(http.ListenAndServe(":"+_PROT, nil))
+
 }
