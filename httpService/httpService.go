@@ -3,7 +3,6 @@ package httpService
 import (
 	"config"
 	"dbUtils"
-	"encoding/json"
 	"fmt"
 	"hashUtils"
 	"io"
@@ -20,14 +19,30 @@ var configData config.Config
 
 func LoadConfig(conf config.Config) {
 	configData = conf
+	// 遍历 authorizedServerTokens 并将它们添加到 Tokens map 中
+	for _, token := range configData.AuthorizedServerTokens {
+		user := User{
+			UserID:         int(time.Now().UnixNano()),
+			UserPermission: config.PermissionServer,
+			UserName:       "OtherServer",
+			TokenExpiry:    time.Now().Add(1024 * time.Hour),
+		}
+		Tokens[token] = user
+	}
 }
 
 type User jsonprovider.User
 
-var tokens map[string]User = make(map[string]User)
+var Tokens map[string]User = make(map[string]User)
 
 func fmtPrintF(io io.Writer, content string, a ...any) {
-	_, err := fmt.Fprintf(io, content, a)
+	var err error
+	if a == nil {
+		_, err = fmt.Fprintf(io, content)
+	} else {
+		_, err = fmt.Fprintf(io, content, a)
+	}
+
 	if err != nil {
 		logger.Error("流输出错误", err)
 		return
@@ -127,23 +142,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	tryingPasswordHash := hashUtils.HashPassword(password, passwordSalt)
 	logger.Debug("尝试哈希", tryingPasswordHash, "实际哈希", passwordHash)
 	if tryingPasswordHash == passwordHash {
-		db := dbUtils.GetDBPtr()
-		// 从数据库中获取用户信息
-		var username, userAvatar, userNote string
-		var userPermission uint
-		var userFriendList json.RawMessage
-		err := db.QueryRow("SELECT userName, userAvatar, userNote, userPermission, userFriendList FROM basic_chat_base.userdatatable WHERE userID = ?", userID).Scan(&username, &userAvatar, &userNote, &userPermission, &userFriendList)
-		if err != nil {
-			logger.Error("获取用户数据失败:", err)
-			return
-		}
+		res, _ := dbUtils.GetUserFromDB(userIDint)
 		var user = User{
 			UserID:         userIDint,
-			UserAvatar:     userAvatar,
-			UserNote:       userNote,
-			UserPermission: userPermission,
-			UserFriendList: userFriendList,
-			UserName:       username,
+			UserAvatar:     res.UserAvatar,
+			UserNote:       res.UserNote,
+			UserPermission: res.UserPermission,
+			UserFriendList: res.UserFriendList,
+			UserName:       res.UserName,
 		}
 		// 生成token
 		token, err := hashUtils.GenerateRandomToken()
@@ -158,7 +164,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		user.TokenExpiry = expiry
 
 		// 将token和用户信息存入内存
-		tokens[token] = user
+		Tokens[token] = user
 
 		// 返回token给用户
 		w.WriteHeader(http.StatusOK)
@@ -187,7 +193,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	command := r.FormValue("command")
 
-	user, ok := tokens[token]
+	user, ok := Tokens[token]
 
 	// 验证token是否有效
 	if !CheckTokenExpiry(token) || ok == false {
@@ -202,13 +208,13 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 		fmtPrintF(w, "Invalid userID")
 		return
 	}
-	if user.UserPermission > config.PermissionServer {
+	if user.UserPermission >= config.PermissionServer {
 		//Server命令
 		switch command {
 		case "verifyToken":
 			targetToken := r.FormValue("targetToken")
 			logger.Debug("远端服务器尝试验证用户token", targetToken)
-			targetUser, ok := tokens[targetToken]
+			targetUser, ok := Tokens[targetToken]
 
 			// 验证token是否有效
 			if !CheckTokenExpiry(token) || ok == false {
@@ -218,6 +224,9 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 			}
 			w.WriteHeader(http.StatusOK)
 			jsonprovider.WriteJSONToWriter(w, targetUser)
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			fmtPrintF(w, "未知的命令")
 		}
 	}
 
@@ -248,6 +257,9 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 		// 发送响应
 		w.WriteHeader(http.StatusOK)
 		jsonprovider.WriteJSONToWriter(w, targetUser)
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		fmtPrintF(w, "未知的命令")
 	}
 }
 
@@ -268,7 +280,7 @@ func containsLowerAndUpperCase(s string) bool {
 	return strings.ToLower(s) != s && strings.ToUpper(s) != s
 }
 func CheckTokenExpiry(token string) bool {
-	user, ok := tokens[token]
+	user, ok := Tokens[token]
 	if !ok {
 		// Token不存在
 		return false

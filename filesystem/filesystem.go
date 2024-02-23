@@ -89,7 +89,10 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file.Close()
+	err = file.Close()
+	if err != nil {
+		return
+	}
 	file, err = os.Open(filePath)
 	if err != nil {
 		logger.Error("重新打开文件时发生错误: %v", err)
@@ -97,20 +100,24 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasher := sha256.New()
-	if _, err := io.Copy(hasher, file); err != nil {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
 		logger.Error("计算文件哈希时发生错误: %v", err)
 		http.Error(w, "计算文件哈希时发生错误", http.StatusInternalServerError)
 		return
 	}
 
-	hashInBytes := hasher.Sum(nil)[:]
+	hashInBytes := hash.Sum(nil)[:]
 	sha256Hash := fmt.Sprintf("%x", hashInBytes)
 
 	newFileName := sha256Hash
 	newFilePath := filepath.Join(uploadDirectory, newFileName)
 
-	file.Close()
+	err = file.Close()
+	if err != nil {
+		logger.Error("关闭文件失败")
+		return
+	}
 	if err := CopyAndRenameFile(filePath, newFilePath); err != nil {
 		logger.Error("重命名文件时发生错误: %v", err)
 		http.Error(w, "重命名文件时发生错误", http.StatusInternalServerError)

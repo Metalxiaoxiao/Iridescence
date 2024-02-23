@@ -53,7 +53,7 @@ go build .
   "DataBaseSettings": {
     "address": "localhost:3306",
     "account": "root",
-    "password": "yourPassword"
+    "password": "Xx20060902zcs"
   },
   "Rotes": {
     "registerRote": "/register",
@@ -63,15 +63,30 @@ go build .
     "uploadRote": "/upload",
     "downloadRote": "/download"
   },
-  "WebsocketConnBufferSize": 0,
-  "saltLength": 0,
-  "tokenLength": 0,
+  "WebsocketConnBufferSize": 2048,
+  "saltLength": 8,
+  "tokenLength": 32,
   "authorizedServerTokens": [
     "token1",
     "token2",
     "token3"
   ],
-  "TokenExpiryHours": 0
+  "TokenExpiryHours": 24,
+  "UserSettings": {
+    "DefaultAvatar": "http://127.0.0.1",
+    "DefaultSettings": {},
+    "DefaultPermission": 0,
+    "DefaultFriendList": [
+      "1",
+      "2"
+    ],
+    "DefaultGroupList": [
+      "3",
+      "4"
+    ],
+    "DefaultNote": "暂无签名",
+    "DefaultHomePageData": {}
+  }
 }
 ```
 

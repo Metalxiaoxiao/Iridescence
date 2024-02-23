@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	clients     = make(map[int]*User) // 保存用户ID与用户结构体的映射关系
-	clientsLock sync.Mutex            // 用于保护映射关系的互斥锁
+	Clients     = make(map[int]*User) // 保存用户ID与用户结构体的映射关系
+	ClientsLock sync.Mutex            // 用于保护映射关系的互斥锁
 
 	////用于ACK的消息池
 	//processingStateMessages     = make(map[int64]*Message)
@@ -112,9 +112,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// 保存到clients map中
-			clientsLock.Lock()
-			clients[userID] = user
-			clientsLock.Unlock()
+			ClientsLock.Lock()
+			Clients[userID] = user
+			ClientsLock.Unlock()
 
 			res = jsonprovider.LoginResponse{
 				State:   true,
@@ -252,7 +252,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			jsonprovider.ParseJSON(message, &req)
 
 			// 获取用户的朋友列表
-			friendList := clients[userID].UserFriendList
+			friendList := Clients[userID].UserFriendList
 			var friends []int
 			err := json.Unmarshal(friendList, &friends)
 			if err != nil {
@@ -264,7 +264,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			// 更新朋友列表
 			newFriendList, _ := json.Marshal(friends)
-			clients[userID].UserFriendList = newFriendList
+			Clients[userID].UserFriendList = newFriendList
 
 			// 更新数据库
 			_, err = db.Exec("UPDATE userdatatable SET userFriendList = ? WHERE userID = ?", newFriendList, userID)
@@ -291,7 +291,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			jsonprovider.ParseJSON(message, &req)
 
 			// 获取用户的朋友列表
-			friendList := clients[userID].UserFriendList
+			friendList := Clients[userID].UserFriendList
 			var friends []int
 			err := json.Unmarshal(friendList, &friends)
 			if err != nil {
@@ -308,7 +308,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			// 更新朋友列表
 			newFriendList, _ := json.Marshal(friends)
-			clients[userID].UserFriendList = newFriendList
+			Clients[userID].UserFriendList = newFriendList
 
 			// 更新数据库
 			_, err = db.Exec("UPDATE userdatatable SET userFriendList = ? WHERE userID = ?", newFriendList, userID)
@@ -462,14 +462,12 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		case "changeSettings":
 
-		case "postOpreation":
-
 		case "changeAvatar":
 			var req jsonprovider.ChangeAvatarRequest
 			jsonprovider.ParseJSON(message, &req)
 
 			// 更新用户结构体
-			clients[userID].UserAvatar = req.NewAvatar
+			Clients[userID].UserAvatar = req.NewAvatar
 
 			// 更新数据库
 			_, err := db.Exec("UPDATE userdatatable SET userAvatar = ? WHERE userID = ?", req.NewAvatar, userID)
@@ -497,18 +495,18 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// 用户断开连接
 	// 在此处删除映射关系
 	if Logined {
-		clientsLock.Lock()
-		delete(clients, userID)
-		clientsLock.Unlock()
+		ClientsLock.Lock()
+		delete(Clients, userID)
+		ClientsLock.Unlock()
 	}
 
 }
 
 func broadcastMessage(message []byte) {
-	clientsLock.Lock()
-	defer clientsLock.Unlock()
+	ClientsLock.Lock()
+	defer ClientsLock.Unlock()
 
-	for _, client := range clients {
+	for _, client := range Clients {
 		err := client.Conn.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
 			logger.Error("Failed to send message:", err)
@@ -518,10 +516,10 @@ func broadcastMessage(message []byte) {
 }
 
 func sendMessageToUser(userID int, message []byte) (bool, error) {
-	clientsLock.Lock()
-	defer clientsLock.Unlock()
+	ClientsLock.Lock()
+	defer ClientsLock.Unlock()
 
-	client, ok := clients[userID]
+	client, ok := Clients[userID]
 	if !ok {
 		logger.Warn("用户不在线:", userID)
 		return false, nil

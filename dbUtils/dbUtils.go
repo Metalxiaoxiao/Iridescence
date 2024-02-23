@@ -29,11 +29,17 @@ func CheckTableExistence(db *sql.DB, DBname string, tableName string) int {
 	return tablecount
 }
 
+var confData config.Config
+
 func GetDBPtr() *sql.DB {
 	return db
 }
+func LoadConfig(conf config.Config) {
+	confData = conf
+}
 
 func DbInit(confData config.Config) {
+	LoadConfig(confData)
 	var err error
 	db, err = sql.Open("mysql", confData.DataBaseSettings.Account+":"+confData.DataBaseSettings.Password+"@tcp("+confData.DataBaseSettings.Address+")/")
 	if err != nil {
@@ -127,4 +133,20 @@ func DbInit(confData config.Config) {
 			logger.Error("Failed to create table:", err)
 		}
 	}
+	if CheckTableExistence(db, _BasicChatDBName, "userposts") == 0 {
+		UseDB(db, _BasicChatDBName)
+		logger.Warn("找不到用户动态数据表，自动创建")
+		createTable := `CREATE TABLE userposts (
+		autherId int NOT NULL,
+		postId bigint NOT NULL,
+		content text,
+		comments text,
+		PRIMARY KEY (postId,autherId)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`
+		_, err := db.Exec(createTable)
+		if err != nil {
+			logger.Error("Failed to create table:", err)
+		}
+	}
+
 }

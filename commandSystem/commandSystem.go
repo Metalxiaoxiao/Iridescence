@@ -21,8 +21,9 @@ func init() {
 }
 
 var commands = map[string]CommandHandler{
-	"quit":   handleQuit,
-	"status": handleStatus,
+	"quit":     handleQuit,
+	"status":   handleStatus,
+	"kickkick": handleInvalidateToken,
 }
 
 func StartListening() {
@@ -65,7 +66,7 @@ func handleStatus(args []string) {
 	numUsers := len(websocketService.Clients) // 假设你的 tokens 变量存储了所有连接的用户
 
 	// 打印表头
-	fmt.Printf("%-20s %-20s\n", "", "Value")
+	fmt.Printf("%-20s %-20s\n", "Metric", "Value")
 	fmt.Printf("%-20s %-20s\n", "------", "-----")
 
 	// 打印表格内容
@@ -74,4 +75,19 @@ func handleStatus(args []string) {
 	fmt.Printf("%-20s %v\n", "Uptime:", upTime)
 	fmt.Printf("%-20s %d\n", "Number of connected users:", numUsers)
 	fmt.Printf("%-20s %d\n", "Number of tokens issued:", len(httpService.Tokens))
+}
+
+func handleInvalidateToken(args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: kick [token]")
+		return
+	}
+
+	token := args[0]
+	if _, ok := httpService.Tokens[token]; ok {
+		delete(httpService.Tokens, token)
+		fmt.Println("Token invalidated:", token)
+	} else {
+		fmt.Println("Token not found:", token)
+	}
 }

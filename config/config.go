@@ -29,6 +29,17 @@ type Config struct {
 	TokenLength             int      `json:"tokenLength"`
 	AuthorizedServerTokens  []string `json:"authorizedServerTokens"`
 	TokenExpiryHours        float64  `json:"TokenExpiryHours"`
+	UserSettings            struct {
+		DefaultAvatar   string `json:"DefaultAvatar"`
+		DefaultSettings struct {
+		}
+		DefaultPermission   int      `json:"DefaultPermission"`
+		DefaultFriendList   []string `json:"DefaultFriendList"`
+		DefaultGroupList    []string `json:"DefaultGroupList"`
+		DefaultNote         string   `json:"DefaultNote"`
+		DefaultHomePageData struct {
+		}
+	}
 }
 
 // LoadConfig 从指定的文件路径加载配置文件，如果文件不存在则创建并写入默认配置
@@ -243,6 +254,25 @@ func getDefaultConfig() Config {
 		TokenExpiryHours:        24.00,
 		WebsocketConnBufferSize: 2048,
 		AuthorizedServerTokens:  []string{"token1", "token2", "token3"},
+		UserSettings: struct {
+			DefaultAvatar   string `json:"DefaultAvatar"`
+			DefaultSettings struct {
+			}
+			DefaultPermission   int      `json:"DefaultPermission"`
+			DefaultFriendList   []string `json:"DefaultFriendList"`
+			DefaultGroupList    []string `json:"DefaultGroupList"`
+			DefaultNote         string   `json:"DefaultNote"`
+			DefaultHomePageData struct {
+			}
+		}{
+			DefaultNote:         "暂无签名",
+			DefaultPermission:   PermissionOrdinaryUser,
+			DefaultAvatar:       "http://127.0.0.1",
+			DefaultSettings:     struct{}{},
+			DefaultGroupList:    []string{"3", "4"},
+			DefaultFriendList:   []string{"1", "2"},
+			DefaultHomePageData: struct{}{},
+		},
 	}
 
 	return defaultConfig
