@@ -10,7 +10,6 @@ type User struct {
 	UserID         int
 	TokenExpiry    time.Time
 	Conn           *websocket.Conn
-	Username       string
 	UserName       string          `json:"userName"`
 	UserAvatar     string          `json:"userAvatar"`
 	UserNote       string          `json:"userNote"`

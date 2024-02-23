@@ -60,10 +60,10 @@ func main() {
 	wsService.LoadDB(db)
 
 	logger.Info("服务器启动成功！")
-	http.HandleFunc(confData.WebSocketServiceRote, wsService.HandleWebSocket)
-	http.HandleFunc(confData.RegisterServiceRote, httpService.HandleRegister)
-	http.HandleFunc(confData.LoginServiceRote, httpService.HandleLogin)
-	http.HandleFunc(confData.UploadServiceRote, fileserver.HandleFileUpload)
-	http.HandleFunc(confData.DownloadServiceRote, fileserver.HandleFileDownload)
+	http.HandleFunc(confData.Rotes.WebSocketServiceRote, wsService.HandleWebSocket)
+	http.HandleFunc(confData.Rotes.RegisterServiceRote, httpService.HandleRegister)
+	http.HandleFunc(confData.Rotes.LoginServiceRote, httpService.HandleLogin)
+	http.HandleFunc(confData.Rotes.UploadServiceRote, fileserver.HandleFileUpload)
+	http.HandleFunc(confData.Rotes.DownloadServiceRote, fileserver.HandleFileDownload)
 	logger.Error(http.ListenAndServe(":"+_PROT, nil))
 }

@@ -217,7 +217,19 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		jsonprovider.WriteJSONToWriter(w, user)
 	case "getUserDataByID":
+		// 从数据库中获取用户信息
+		targetUserID := r.FormValue("target")
+		targetUserIDint, _ := strconv.Atoi(targetUserID)
+		user, err := dbUtils.GetUserFromDB(targetUserIDint)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmtPrintF(w, "Failed to get user data")
+			return
+		}
 
+		// 发送响应
+		w.WriteHeader(http.StatusOK)
+		jsonprovider.WriteJSONToWriter(w, user)
 	}
 }
 

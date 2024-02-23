@@ -55,8 +55,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// 完成WebSocket握手
 	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+		ReadBufferSize:  configData.WebsocketConnBufferSize,
+		WriteBufferSize: configData.WebsocketConnBufferSize,
 	}
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
@@ -104,7 +104,6 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			user := &User{
 				UserID:         userID,
 				Conn:           conn,
-				Username:       username,
 				UserName:       username,
 				UserAvatar:     userAvatar,
 				UserNote:       userNote,
@@ -404,14 +403,11 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			jsonprovider.ParseJSON(message, &req)
 
 			// 从数据库中获取用户数据
-			user, err := dbUtils.GetUserFromDB(userID)
+			res, err := dbUtils.GetUserFromDB(userID)
 			if err != nil {
 				logger.Error("Failed to get user data:", err)
 				return
 			}
-
-			// 创建响应
-			res := jsonprovider.GetUserDataResponse(*user)
 
 			// 发送响应
 			message := jsonprovider.StringifyJSON(res)

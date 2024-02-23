@@ -80,7 +80,7 @@ func GetDBPasswordHash(userID int) (string, []byte, error) {
 
 	return passwordHash, salt, nil
 }
-func GetUserFromDB(userID int) (*User, error) {
+func GetUserFromDB(userID int) (*jsonprovider.GetUserDataResponse, error) {
 	// 从数据库中获取用户信息
 	var username, userAvatar, userNote string
 	var userPermission uint
@@ -92,9 +92,9 @@ func GetUserFromDB(userID int) (*User, error) {
 	}
 
 	// 创建 User 结构体
-	user := &jsonprovider.User{
+	user := &jsonprovider.GetUserDataResponse{
 		UserID:         userID,
-		Username:       username,
+		UserName:       username,
 		UserAvatar:     userAvatar,
 		UserNote:       userNote,
 		UserPermission: userPermission,

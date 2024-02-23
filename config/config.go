@@ -16,15 +16,19 @@ type Config struct {
 		Account  string `json:"account"`
 		Password string `json:"password"`
 	}
-	RegisterServiceRote    string `json:"registerRote"`
-	LoginServiceRote       string `json:"loginRote"`
-	WebSocketServiceRote   string `json:"wsRote"`
-	UploadServiceRote      string `json:"uploadRote"`
-	DownloadServiceRote    string `json:"downloadRote"`
-	SaltLength             int
-	TokenLength            int
-	AuthorizedServerTokens []string `json:"authorizedServerTokens"`
-	TokenExpiryHours       float64
+	Rotes struct {
+		RegisterServiceRote  string `json:"registerRote"`
+		RequestServiceRote   string `json:"requestRote"`
+		LoginServiceRote     string `json:"loginRote"`
+		WebSocketServiceRote string `json:"wsRote"`
+		UploadServiceRote    string `json:"uploadRote"`
+		DownloadServiceRote  string `json:"downloadRote"`
+	}
+	WebsocketConnBufferSize int      `json:"WebsocketConnBufferSize"`
+	SaltLength              int      `json:"saltLength"`
+	TokenLength             int      `json:"tokenLength"`
+	AuthorizedServerTokens  []string `json:"authorizedServerTokens"`
+	TokenExpiryHours        float64  `json:"TokenExpiryHours"`
 }
 
 // LoadConfig 从指定的文件路径加载配置文件，如果文件不存在则创建并写入默认配置
@@ -136,15 +140,26 @@ func getDefaultConfig() Config {
 			Account:  "default_account",
 			Password: "default_password",
 		},
-		RegisterServiceRote:    "/register",
-		LoginServiceRote:       "/login",
-		WebSocketServiceRote:   "/ws",
-		UploadServiceRote:      "/upload",
-		DownloadServiceRote:    "/download",
-		SaltLength:             8,
-		TokenLength:            256,
-		TokenExpiryHours:       24.00,
-		AuthorizedServerTokens: []string{"token1", "token2", "token3"},
+		Rotes: struct {
+			RegisterServiceRote  string `json:"registerRote"`
+			RequestServiceRote   string `json:"requestRote"`
+			LoginServiceRote     string `json:"loginRote"`
+			WebSocketServiceRote string `json:"wsRote"`
+			UploadServiceRote    string `json:"uploadRote"`
+			DownloadServiceRote  string `json:"downloadRote"`
+		}{
+			RegisterServiceRote:  "/register",
+			RequestServiceRote:   "/request",
+			LoginServiceRote:     "/login",
+			WebSocketServiceRote: "/ws",
+			UploadServiceRote:    "/upload",
+			DownloadServiceRote:  "/download",
+		},
+		SaltLength:              8,
+		TokenLength:             256,
+		TokenExpiryHours:        24.00,
+		WebsocketConnBufferSize: 2048,
+		AuthorizedServerTokens:  []string{"token1", "token2", "token3"},
 	}
 
 	return defaultConfig
