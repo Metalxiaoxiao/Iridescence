@@ -3,6 +3,7 @@ package httpService
 import (
 	"config"
 	"dbUtils"
+	"encoding/json"
 	"fmt"
 	"hashUtils"
 	"io"
@@ -263,6 +264,85 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch command {
+	case "getUserPosts":
+		var req jsonprovider.GetUserPostsRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmtPrintF(w, "Invalid request body")
+			return
+		}
+
+		// 从数据库中获取帖子
+		posts, err := dbUtils.GetUserPostsFromDB(req.UserID, req.StartTime, req.EndTime)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmtPrintF(w, "Failed to get posts")
+			return
+		}
+
+		// 创建响应
+		res := jsonprovider.GetUserPostsResponse{
+			UserID: req.UserID,
+			Posts:  posts,
+		}
+
+		// 发送响应
+		w.WriteHeader(http.StatusOK)
+		jsonprovider.WriteJSONToWriter(w, res)
+	case "getPost":
+		var req jsonprovider.GetPostRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmtPrintF(w, "Invalid request body")
+			return
+		}
+
+		// 从数据库中获取帖子
+		post, err := dbUtils.GetPostFromDB(req.PostID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmtPrintF(w, "Failed to get post")
+			return
+		}
+
+		// 创建响应
+		res := jsonprovider.GetPostResponse{
+			AuthorID: post.AuthorID,
+			PostID:   post.PostID,
+			Content:  post.Content,
+			Time:     post.Time,
+			Comments: post.Comments,
+		}
+
+		// 发送响应
+		w.WriteHeader(http.StatusOK)
+		jsonprovider.WriteJSONToWriter(w, res)
+	case "publishPost":
+		var req jsonprovider.PublishPostRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmtPrintF(w, "Invalid request body")
+			return
+		}
+
+		// 在这里处理发布帖子的逻辑
+		// 例如，你可以将帖子保存到数据库，或者发送给其他用户
+		err = dbUtils.SavePostToDB(req.UserID, req.Content)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmtPrintF(w, "Failed to publish post")
+			return
+		}
+
+		// 发送响应
+		res := jsonprovider.PublishPostResponse{
+			Success: true,
+		}
+		w.WriteHeader(http.StatusOK)
+		jsonprovider.WriteJSONToWriter(w, res)
 	case "getUserData":
 		// 从数据库中获取用户信息
 		targetUser, err := dbUtils.GetUserFromDB(user.UserID)

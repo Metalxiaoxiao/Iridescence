@@ -155,3 +155,33 @@ type GetOfflineMessagesResponse struct {
 	UserID   int       `json:"userId"`
 	Messages []Message `json:"messages"`
 }
+type PublishPostRequest struct {
+	UserID  int    `json:"userId"`
+	Content string `json:"content"`
+}
+
+type PublishPostResponse struct {
+	Success bool `json:"success"`
+}
+type GetPostRequest struct {
+	PostID int64 `json:"postId"`
+}
+
+type GetPostResponse struct {
+	AuthorID int    `json:"authorId"`
+	PostID   int64  `json:"postId"`
+	Content  string `json:"content"`
+	Time     int64  `json:"time"`
+	Comments string `json:"comments"`
+}
+
+type GetUserPostsRequest struct {
+	UserID    int   `json:"userId"`
+	StartTime int64 `json:"startTime"`
+	EndTime   int64 `json:"endTime"`
+}
+
+type GetUserPostsResponse struct {
+	UserID int               `json:"userId"`
+	Posts  []GetPostResponse `json:"posts"`
+}

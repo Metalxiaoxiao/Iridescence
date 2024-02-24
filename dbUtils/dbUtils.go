@@ -135,7 +135,7 @@ func DbInit(confData config.Config) {
 	}
 	if CheckTableExistence(db, _BasicChatDBName, "messages") == 0 {
 		UseDB(db, _BasicChatDBName)
-		logger.Warn("找不到离线消息数据表，自动创建")
+		logger.Warn("找不到消息数据表，自动创建")
 		createTable := `CREATE TABLE messages (
     			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
     			senderID int unsigned NOT NULL,
@@ -154,7 +154,7 @@ func DbInit(confData config.Config) {
 	}
 	if CheckTableExistence(db, _BasicChatDBName, "groupmessagees") == 0 {
 		UseDB(db, _BasicChatDBName)
-		logger.Warn("找不到离线消息数据表，自动创建")
+		logger.Warn("找不到群消息数据表，自动创建")
 		createTable := `CREATE TABLE groupmessagees (
     			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
     			senderID int unsigned NOT NULL,
@@ -175,11 +175,13 @@ func DbInit(confData config.Config) {
 		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到用户动态数据表，自动创建")
 		createTable := `CREATE TABLE userposts (
-		autherId int NOT NULL,
-		postId bigint NOT NULL,
+		authorId int NOT NULL,
+		postId bigint NOT NULL auto_increment,
 		content text,
+		time bigint,
 		comments text,
-		PRIMARY KEY (postId,autherId)
+		PRIMARY KEY (postId),
+        KEY idx_authorId  (authorId)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`
 		_, err := db.Exec(createTable)
 		if err != nil {

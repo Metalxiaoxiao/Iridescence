@@ -201,7 +201,7 @@ func handleBanUser(args []string) {
 	}
 
 	db := dbUtils.GetDBPtr()
-	_, err = db.Exec("UPDATE userdatatable SET userPermission = ? WHERE userID = ?", config.PermissionBannedUser, userID)
+	_, err = db.Exec("UPDATE basic_chat_base.userdatatable SET userPermission = ? WHERE userID = ?", config.PermissionBannedUser, userID)
 	if err != nil {
 		fmt.Println("Failed to ban user:", err)
 		return

@@ -16,3 +16,16 @@ type User struct {
 	UserPermission uint            `json:"userPermission"`
 	UserFriendList json.RawMessage `json:"userFriendList"`
 }
+type Friend struct {
+	UserID  int
+	AddTime int
+}
+type FriendList []Friend
+
+type UserSettings struct {
+}
+type Group struct {
+	GroupName string
+	GroupID   int
+}
+type GroupList []Group

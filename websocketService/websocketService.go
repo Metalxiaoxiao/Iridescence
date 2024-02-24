@@ -419,7 +419,8 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		case "userStateEvent":
 
-		case "getUnreceivedMessage":
+		case "getOfflineMessage":
+			handleGetOfflineMessages(userID)
 
 		case "getMessagesWithUser":
 			var req jsonprovider.GetMessagesWithUserRequest
