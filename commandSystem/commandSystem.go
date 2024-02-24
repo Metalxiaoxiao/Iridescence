@@ -2,11 +2,15 @@ package commandSystem
 
 import (
 	"bufio"
+	"config"
+	"dbUtils"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"httpService"
 	"logger"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 	"websocketService"
@@ -21,9 +25,16 @@ func init() {
 }
 
 var commands = map[string]CommandHandler{
-	"quit":     handleQuit,
-	"status":   handleStatus,
-	"kickkick": handleInvalidateToken,
+	"quit":       handleQuit,
+	"status":     handleStatus,
+	"kicktoken":  handleInvalidateToken,
+	"userinfo":   handleUserInfo,
+	"kick":       handleKickUser,
+	"listusers":  handleListUsers,
+	"listtokens": handleListTokens,
+	"banuser":    handleBanUser,
+	"unbanuser":  handleUnbanUser,
+	"broadcast":  handleBroadcast,
 }
 
 func StartListening() {
@@ -37,7 +48,7 @@ func StartListening() {
 			if handler, ok := commands[parts[0]]; ok {
 				handler(parts[1:])
 			} else {
-				fmt.Println(">>", parts[0])
+				fmt.Println("未知的命令：", parts[0])
 			}
 		}
 	}()
@@ -79,7 +90,7 @@ func handleStatus(args []string) {
 
 func handleInvalidateToken(args []string) {
 	if len(args) != 1 {
-		fmt.Println("Usage: kick [token]")
+		fmt.Println("Usage: kicktoken [token]")
 		return
 	}
 
@@ -89,5 +100,167 @@ func handleInvalidateToken(args []string) {
 		fmt.Println("Token invalidated:", token)
 	} else {
 		fmt.Println("Token not found:", token)
+	}
+}
+func handleUserInfo(args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: userinfo [userID]")
+		return
+	}
+
+	userID, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println("Invalid userID:", args[0])
+		return
+	}
+
+	websocketService.ClientsLock.Lock()
+	user, ok := websocketService.Clients[userID]
+	websocketService.ClientsLock.Unlock()
+
+	if !ok {
+		fmt.Println("User not found:", userID)
+		return
+	}
+
+	fmt.Printf("用户ID: %d\n", user.UserID)
+	fmt.Printf("用户名: %s\n", user.UserName)
+	fmt.Printf("用户头像: %s\n", user.UserAvatar)
+	fmt.Printf("用户备注: %s\n", user.UserNote)
+	fmt.Printf("用户权限: %d\n", user.UserPermission)
+	fmt.Printf("用户好友列表: %s\n", string(user.UserFriendList))
+}
+func handleKickUser(args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: kickuser [userID]")
+		return
+	}
+
+	userID, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println("Invalid userID:", args[0])
+		return
+	}
+
+	websocketService.ClientsLock.Lock()
+	user, ok := websocketService.Clients[userID]
+	websocketService.ClientsLock.Unlock()
+
+	if !ok {
+		fmt.Println("User not found:", userID)
+		return
+	}
+
+	err = user.Conn.Close()
+	if err != nil {
+		fmt.Println("Failed to disconnect user:", err)
+		return
+	}
+
+	fmt.Println("User disconnected:", userID)
+}
+func handleListUsers(args []string) {
+	websocketService.ClientsLock.Lock()
+	defer websocketService.ClientsLock.Unlock()
+
+	logger.Info("当前在线用户:")
+	for id, user := range websocketService.Clients {
+		fmt.Printf("用户ID: %d, 用户名: %s\n", id, user.UserName)
+	}
+}
+func handleBroadcast(args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: broadcast [message]")
+		return
+	}
+
+	message := args[0]
+
+	websocketService.ClientsLock.Lock()
+	defer websocketService.ClientsLock.Unlock()
+
+	for _, user := range websocketService.Clients {
+		err := user.Conn.WriteMessage(websocket.TextMessage, []byte(message))
+		if err != nil {
+			fmt.Println("Failed to send message to user:", user.UserID)
+		}
+	}
+
+	fmt.Println("Broadcast message sent.")
+}
+func handleBanUser(args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: banuser [userID]")
+		return
+	}
+
+	userID, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println("Invalid userID:", args[0])
+		return
+	}
+
+	db := dbUtils.GetDBPtr()
+	_, err = db.Exec("UPDATE userdatatable SET userPermission = ? WHERE userID = ?", config.PermissionBannedUser, userID)
+	if err != nil {
+		fmt.Println("Failed to ban user:", err)
+		return
+	}
+
+	websocketService.ClientsLock.Lock()
+	user, ok := websocketService.Clients[userID]
+	if ok {
+		user.UserPermission = config.PermissionBannedUser
+	}
+	websocketService.ClientsLock.Unlock()
+
+	token, ok := httpService.UserToTokens[userID]
+	if ok {
+		tokenUser, _ := httpService.Tokens[*token]
+		tokenUser.UserPermission = config.PermissionBannedUser
+	}
+	fmt.Println("User banned:", userID)
+}
+func handleUnbanUser(args []string) {
+	if len(args) != 1 {
+		fmt.Println("Usage: unbanuser [userID]")
+		return
+	}
+
+	userID, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println("Invalid userID:", args[0])
+		return
+	}
+
+	db := dbUtils.GetDBPtr()
+	_, err = db.Exec("UPDATE userdatatable SET userPermission = ? WHERE userID = ?", config.PermissionOrdinaryUser, userID)
+	if err != nil {
+		fmt.Println("Failed to unban user:", err)
+		return
+	}
+
+	websocketService.ClientsLock.Lock()
+	user, ok := websocketService.Clients[userID]
+	if ok {
+		user.UserPermission = config.PermissionOrdinaryUser
+	}
+	websocketService.ClientsLock.Unlock()
+
+	token, ok := httpService.UserToTokens[userID]
+	if ok {
+		tokenUser, _ := httpService.Tokens[*token]
+		tokenUser.UserPermission = config.PermissionOrdinaryUser
+	}
+
+	fmt.Println("User unbanned:", userID)
+}
+func handleListTokens(args []string) {
+	fmt.Println("当前有效的tokens:")
+	for token, user := range httpService.Tokens {
+		// 检查token是否已经过期
+		if httpService.CheckTokenExpiry(token) {
+			fmt.Printf("Token: %s, 用户ID: %d, 权限等级: %d\n", token, user.UserID, user.UserPermission)
+		}
 	}
 }

@@ -20,20 +20,22 @@ var configData config.Config
 func LoadConfig(conf config.Config) {
 	configData = conf
 	// 遍历 authorizedServerTokens 并将它们添加到 Tokens map 中
-	for _, token := range configData.AuthorizedServerTokens {
+	for index, token := range configData.AuthorizedServerTokens {
 		user := User{
-			UserID:         int(time.Now().UnixNano()),
+			UserID:         int(time.Now().UnixNano()) + index,
 			UserPermission: config.PermissionServer,
 			UserName:       "OtherServer",
 			TokenExpiry:    time.Now().Add(1024 * time.Hour),
 		}
-		Tokens[token] = user
+		Tokens[token] = &user
+		UserToTokens[user.UserID] = &token
 	}
 }
 
 type User jsonprovider.User
 
-var Tokens map[string]User = make(map[string]User)
+var Tokens map[string]*User = make(map[string]*User)
+var UserToTokens map[int]*string = make(map[int]*string)
 
 func fmtPrintF(io io.Writer, content string, a ...any) {
 	var err error
@@ -51,18 +53,39 @@ func fmtPrintF(io io.Writer, content string, a ...any) {
 
 // 注册逻辑
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
+	ok := AllowCORS(w, r)
+	if ok {
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmtPrintF(w, "不允许GET请求，请使用POST重新请求")
 		return
 	}
 
-	// 从请求中获取注册表单数据
-	username := r.FormValue("userName")
-	password := r.FormValue("password")
+	contentType := r.Header.Get("Content-Type")
 
-	// 验证表单数据是否有效
+	var username, password string
 
+	if contentType == "application/json" {
+		var user jsonprovider.SignUpRequest
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		jsonprovider.ParseJSON(body, &user)
+
+		username = strconv.Itoa(user.UserName)
+		password = user.Password
+	} else if contentType == "application/x-www-form-urlencoded" {
+		username = r.FormValue("userName")
+		password = r.FormValue("password")
+	} else {
+		http.Error(w, "Unsupported content type", http.StatusUnsupportedMediaType)
+		return
+	}
 	if username == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmtPrintF(w, "缺少参数")
@@ -116,6 +139,10 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
+	ok := AllowCORS(w, r)
+	if ok {
+		return
+	}
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmtPrintF(w, "不允许GET请求，请使用POST重新请求")
@@ -164,7 +191,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		user.TokenExpiry = expiry
 
 		// 将token和用户信息存入内存
-		Tokens[token] = user
+		Tokens[token] = &user
+		UserToTokens[user.UserID] = &token
 
 		// 返回token给用户
 		w.WriteHeader(http.StatusOK)
@@ -175,6 +203,10 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleRequest 处理查询用户信息的HTTP请求
 func HandleRequest(w http.ResponseWriter, r *http.Request) {
+	ok := AllowCORS(w, r)
+	if ok {
+		return
+	}
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmtPrintF(w, "不允许GET请求，请使用POST重新请求")
@@ -289,9 +321,21 @@ func CheckTokenExpiry(token string) bool {
 	// 检查Token是否已经过期
 	if time.Now().After(user.TokenExpiry) {
 		// Token已经过期
+		delete(UserToTokens, user.UserID)
 		return false
 	}
 
 	// Token没有过期
 	return true
+}
+func AllowCORS(w http.ResponseWriter, r *http.Request) bool {
+	w.Header().Add("Access-Control-Allow-Origin", "*")                                                                                   // 允许任何来源
+	w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")                                                    // 允许的 HTTP 方法
+	w.Header().Add("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization") // 允许的 HTTP 请求头
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return true
+	} else {
+		return false
+	}
 }

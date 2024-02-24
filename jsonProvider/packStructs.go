@@ -16,7 +16,7 @@ type LoginResponse struct {
 	Message string
 }
 type SignUpRequest struct {
-	Userid   int    `json:"userid"`
+	UserName int    `json:"userName"`
 	Password string `json:"password"`
 }
 type SendMessageRequest struct {

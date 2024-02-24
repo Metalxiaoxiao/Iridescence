@@ -1,7 +1,7 @@
 package config
 
 const (
-	PermissionTraveler = iota
+	PermissionBannedUser = iota
 	PermissionOrdinaryUser
 	PermissionOperator
 	PermissionServer
