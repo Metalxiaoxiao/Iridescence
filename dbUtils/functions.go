@@ -109,7 +109,7 @@ func SavePostToDB(userID int, content string) error {
 	postTime := time.Now().Unix()
 
 	// 插入新的帖子到数据库
-	_, err := db.Exec("INSERT INTO userposts (autherId, content, time) VALUES (?, ?, ?)", userID, content, postTime)
+	_, err := db.Exec("INSERT INTO basic_chat_base.userposts (authorId, content, time) VALUES (?, ?, ?)", userID, content, postTime)
 	if err != nil {
 		logger.Error("Failed to save post to DB:", err)
 		return err
@@ -137,7 +137,40 @@ func GetUserPostsFromDB(userID int, startTime, endTime int64) ([]jsonprovider.Ge
 		logger.Error("Failed to get posts from DB:", err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			logger.Error("SQL错误", err)
+		}
+	}(rows)
+
+	// 读取帖子
+	var posts []jsonprovider.GetPostResponse
+	for rows.Next() {
+		var post jsonprovider.GetPostResponse
+		err := rows.Scan(&post.AuthorID, &post.PostID, &post.Content, &post.Time, &post.Comments)
+		if err != nil {
+			logger.Error("Failed to read post:", err)
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}
+func GetPostsFromDB(startTime, endTime int64) ([]jsonprovider.GetPostResponse, error) {
+	// 从数据库中获取帖子
+	rows, err := db.Query("SELECT authorId, postId, content, time, comments FROM userposts WHERE time BETWEEN ? AND ?", startTime, endTime)
+	if err != nil {
+		logger.Error("Failed to get posts from DB:", err)
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			logger.Error("SQL错误", err)
+		}
+	}(rows)
 
 	// 读取帖子
 	var posts []jsonprovider.GetPostResponse

@@ -264,6 +264,31 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch command {
+	case "getPosts":
+		var req jsonprovider.GetPostsRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmtPrintF(w, "Invalid request body")
+			return
+		}
+
+		// 从数据库中获取帖子
+		posts, err := dbUtils.GetPostsFromDB(req.StartTime, req.EndTime)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmtPrintF(w, "Failed to get posts")
+			return
+		}
+
+		// 创建响应
+		res := jsonprovider.GetPostsResponse{
+			Posts: posts,
+		}
+
+		// 发送响应
+		w.WriteHeader(http.StatusOK)
+		jsonprovider.WriteJSONToWriter(w, res)
 	case "getUserPosts":
 		var req jsonprovider.GetUserPostsRequest
 		err := json.NewDecoder(r.Body).Decode(&req)

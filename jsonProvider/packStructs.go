@@ -185,3 +185,11 @@ type GetUserPostsResponse struct {
 	UserID int               `json:"userId"`
 	Posts  []GetPostResponse `json:"posts"`
 }
+type GetPostsRequest struct {
+	StartTime int64 `json:"startTime"`
+	EndTime   int64 `json:"endTime"`
+}
+
+type GetPostsResponse struct {
+	Posts []GetPostResponse `json:"posts"`
+}
