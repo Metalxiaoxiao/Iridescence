@@ -151,3 +151,7 @@ type DeleteFriendResponse struct {
 	FriendID int  `json:"friendId"`
 	Success  bool `json:"success"`
 }
+type GetOfflineMessagesResponse struct {
+	UserID   int       `json:"userId"`
+	Messages []Message `json:"messages"`
+}

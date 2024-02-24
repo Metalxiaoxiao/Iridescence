@@ -97,6 +97,24 @@ func DbInit(confData config.Config) {
 			logger.Error("Failed to create table:", err)
 		}
 	}
+	if CheckTableExistence(db, _BasicChatDBName, "offlinemessages") == 0 {
+		UseDB(db, _BasicChatDBName)
+		logger.Warn("找不到离线消息数据表，自动创建")
+		createTable := `CREATE TABLE offlinemessages (
+    			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    			senderID int unsigned NOT NULL,
+				receiverID int unsigned NOT NULL,
+				time BIGINT unsigned DEFAULT NULL,
+				messageBody text DEFAULT NULL,
+				messageType smallint unsigned DEFAULT NULL,
+				PRIMARY KEY (messageID) USING BTREE,
+				KEY idx_senderID (senderID)
+			  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`
+		_, err := db.Exec(createTable)
+		if err != nil {
+			logger.Error("Failed to create table:", err)
+		}
+	}
 	if CheckTableExistence(db, _BasicChatDBName, "offlinegroupmessages") == 0 {
 		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到离线群消息数据表，自动创建")
@@ -115,16 +133,36 @@ func DbInit(confData config.Config) {
 			logger.Error("Failed to create table:", err)
 		}
 	}
-	if CheckTableExistence(db, _BasicChatDBName, "offlinemessages") == 0 {
+	if CheckTableExistence(db, _BasicChatDBName, "messages") == 0 {
 		UseDB(db, _BasicChatDBName)
 		logger.Warn("找不到离线消息数据表，自动创建")
-		createTable := `CREATE TABLE offlinemessages (
+		createTable := `CREATE TABLE messages (
     			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
     			senderID int unsigned NOT NULL,
 				receiverID int unsigned NOT NULL,
 				time BIGINT unsigned DEFAULT NULL,
 				messageBody text DEFAULT NULL,
 				messageType smallint unsigned DEFAULT NULL,
+				state int unsigned DEFAULT 0,
+				PRIMARY KEY (messageID) USING BTREE,
+				KEY idx_senderID (senderID)
+			  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`
+		_, err := db.Exec(createTable)
+		if err != nil {
+			logger.Error("Failed to create table:", err)
+		}
+	}
+	if CheckTableExistence(db, _BasicChatDBName, "groupmessagees") == 0 {
+		UseDB(db, _BasicChatDBName)
+		logger.Warn("找不到离线消息数据表，自动创建")
+		createTable := `CREATE TABLE groupmessagees (
+    			messageID INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    			senderID int unsigned NOT NULL,
+				receiverID int unsigned NOT NULL,
+				time BIGINT unsigned DEFAULT NULL,
+				messageBody text DEFAULT NULL,
+				messageType smallint unsigned DEFAULT NULL,
+				extradata text DEFAULT NULL,
 				PRIMARY KEY (messageID) USING BTREE,
 				KEY idx_senderID (senderID)
 			  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;`

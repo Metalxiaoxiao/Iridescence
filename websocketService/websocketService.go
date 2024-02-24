@@ -426,7 +426,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			jsonprovider.ParseJSON(message, &req)
 
 			// 从数据库中查询聊天记录
-			rows, err := db.Query("SELECT messageID, senderID, receiverID, time, messageBody, messageType FROM offlinemessages WHERE ((senderID = ? AND receiverID = ?) OR (senderID = ? AND receiverID = ?)) AND time BETWEEN ? AND ?", userID, req.OtherUserID, req.OtherUserID, userID, req.StartTime, req.EndTime)
+			rows, err := db.Query("SELECT messageID, senderID, receiverID, time, messageBody, messageType FROM messages WHERE ((senderID = ? AND receiverID = ?) OR (senderID = ? AND receiverID = ?)) AND time BETWEEN ? AND ?", userID, req.OtherUserID, req.OtherUserID, userID, req.StartTime, req.EndTime)
 			if err != nil {
 				logger.Error("Failed to get messages:", err)
 				return
@@ -533,4 +533,47 @@ func sendMessageToUser(userID int, message []byte) (bool, error) {
 	}
 
 	return true, nil
+}
+func handleGetOfflineMessages(userID int) {
+	// 从数据库中获取离线消息
+	rows, err := db.Query("SELECT messageID, senderID, receiverID, time, messageBody, messageType FROM offlinemessages WHERE receiverID = ?", userID)
+	if err != nil {
+		logger.Error("Failed to get offline messages:", err)
+		return
+	}
+
+	// 读取离线消息
+	var messages []jsonprovider.Message
+	for rows.Next() {
+		var message jsonprovider.Message
+		err := rows.Scan(&message.MessageID, &message.SenderID, &message.ReceiverID, &message.Time, &message.MessageBody, &message.MessageType)
+		if err != nil {
+			logger.Error("Failed to read message:", err)
+			return
+		}
+		messages = append(messages, message)
+	}
+	err = rows.Close()
+	if err != nil {
+		logger.Error("Failed to close rows:", err)
+	}
+
+	// 删除已读的离线消息
+	_, err = db.Exec("DELETE FROM offlinemessages WHERE receiverID = ?", userID)
+	if err != nil {
+		logger.Error("Failed to delete offline messages:", err)
+	}
+
+	// 创建响应
+	res := jsonprovider.GetOfflineMessagesResponse{
+		UserID:   userID,
+		Messages: messages,
+	}
+
+	// 发送响应
+	message := jsonprovider.StringifyJSON(res)
+	_, err = sendMessageToUser(userID, []byte(message))
+	if err != nil {
+		logger.Error("Failed to send offline messages:", err)
+	}
 }
