@@ -95,8 +95,8 @@ func HandleFileUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	file, err = os.Open(filePath)
 	if err != nil {
-		logger.Error("重新打开文件时发生错误: %v", err)
-		http.Error(w, "重新打开文件时发生错误", http.StatusInternalServerError)
+		logger.Error("打开文件时发生错误: %v", err)
+		http.Error(w, "打开文件时发生错误", http.StatusInternalServerError)
 		return
 	}
 

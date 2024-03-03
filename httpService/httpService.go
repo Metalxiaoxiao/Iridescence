@@ -80,12 +80,9 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 		username = strconv.Itoa(user.UserName)
 		password = user.Password
-	} else if contentType == "application/x-www-form-urlencoded" {
+	} else {
 		username = r.FormValue("userName")
 		password = r.FormValue("password")
-	} else {
-		http.Error(w, "Unsupported content type", http.StatusUnsupportedMediaType)
-		return
 	}
 	if username == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
