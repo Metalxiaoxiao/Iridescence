@@ -24,21 +24,42 @@ type Config struct {
 		UploadServiceRote    string `json:"uploadRote"`
 		DownloadServiceRote  string `json:"downloadRote"`
 	}
-	WebsocketConnBufferSize int      `json:"WebsocketConnBufferSize"`
-	SaltLength              int      `json:"saltLength"`
-	TokenLength             int      `json:"tokenLength"`
-	AuthorizedServerTokens  []string `json:"authorizedServerTokens"`
-	TokenExpiryHours        float64  `json:"TokenExpiryHours"`
-	UserSettings            struct {
-		DefaultAvatar   string `json:"DefaultAvatar"`
+	WebsocketConnBufferSize          int      `json:"websocketConnBufferSize"`
+	WebSocketHeartbeatTimeoutSeconds int      `json:"webSocketHeartbeatTimeoutSeconds"`
+	SaltLength                       int      `json:"saltLength"`
+	TokenLength                      int      `json:"tokenLength"`
+	AuthorizedServerTokens           []string `json:"authorizedServerTokens"`
+	TokenExpiryHours                 float64  `json:"tokenExpiryHours"`
+	UserSettings                     struct {
+		DefaultAvatar   string `json:"defaultAvatar"`
 		DefaultSettings struct {
 		}
-		DefaultPermission   int      `json:"DefaultPermission"`
-		DefaultFriendList   []string `json:"DefaultFriendList"`
-		DefaultGroupList    []string `json:"DefaultGroupList"`
-		DefaultNote         string   `json:"DefaultNote"`
+		DefaultPermission   int      `json:"defaultPermission"`
+		DefaultFriendList   []string `json:"defaultFriendList"`
+		DefaultGroupList    []string `json:"defaultGroupList"`
+		DefaultNote         string   `json:"defaultNote"`
 		DefaultHomePageData struct {
 		}
+	}
+	Commands struct {
+		Heart                string `json:"heart"`
+		CheckUserOnlineState string `json:"checkUserOnlineState"`
+		SendUserMessage      string `json:"sendUserMessage"`
+		SendGroupMessage     string `json:"sendGroupMessage"`
+		AddFriend            string `json:"addFriend"`
+		DeleteFriend         string `json:"deleteFriend"`
+		ChangeFriendSettings string `json:"changeFriendSettings"`
+		CreateGroup          string `json:"createGroup"`
+		BreakGroup           string `json:"breakGroup"`
+		ChangeGroupSettings  string `json:"changeGroupSettings"`
+		GetUserData          string `json:"getUserData"`
+		MessageEvent         string `json:"messageEvent"`
+		UserStateEvent       string `json:"userStateEvent"`
+		GetOfflineMessage    string `json:"getOfflineMessage"`
+		GetMessagesWithUser  string `json:"getMessagesWithUser"`
+		ChangeSettings       string `json:"changeSettings"`
+		ChangeAvatar         string `json:"changeAvatar"`
+		Logout               string `json:"logout"`
 	}
 }
 
@@ -249,19 +270,20 @@ func getDefaultConfig() Config {
 			UploadServiceRote:    "/upload",
 			DownloadServiceRote:  "/download",
 		},
-		SaltLength:              8,
-		TokenLength:             256,
-		TokenExpiryHours:        24.00,
-		WebsocketConnBufferSize: 2048,
-		AuthorizedServerTokens:  []string{"token1", "token2", "token3"},
+		SaltLength:                       8,
+		TokenLength:                      256,
+		TokenExpiryHours:                 24.00,
+		WebsocketConnBufferSize:          2048,
+		WebSocketHeartbeatTimeoutSeconds: 10,
+		AuthorizedServerTokens:           []string{"token1", "token2", "token3"},
 		UserSettings: struct {
-			DefaultAvatar   string `json:"DefaultAvatar"`
+			DefaultAvatar   string `json:"defaultAvatar"`
 			DefaultSettings struct {
 			}
-			DefaultPermission   int      `json:"DefaultPermission"`
-			DefaultFriendList   []string `json:"DefaultFriendList"`
-			DefaultGroupList    []string `json:"DefaultGroupList"`
-			DefaultNote         string   `json:"DefaultNote"`
+			DefaultPermission   int      `json:"defaultPermission"`
+			DefaultFriendList   []string `json:"defaultFriendList"`
+			DefaultGroupList    []string `json:"defaultGroupList"`
+			DefaultNote         string   `json:"defaultNote"`
 			DefaultHomePageData struct {
 			}
 		}{
@@ -272,6 +294,45 @@ func getDefaultConfig() Config {
 			DefaultGroupList:    []string{"3", "4"},
 			DefaultFriendList:   []string{"1", "2"},
 			DefaultHomePageData: struct{}{},
+		},
+		Commands: struct {
+			Heart                string "json:\"heart\""
+			CheckUserOnlineState string "json:\"checkUserOnlineState\""
+			SendUserMessage      string "json:\"sendUserMessage\""
+			SendGroupMessage     string "json:\"sendGroupMessage\""
+			AddFriend            string "json:\"addFriend\""
+			DeleteFriend         string "json:\"deleteFriend\""
+			ChangeFriendSettings string "json:\"changeFriendSettings\""
+			CreateGroup          string "json:\"createGroup\""
+			BreakGroup           string "json:\"breakGroup\""
+			ChangeGroupSettings  string "json:\"changeGroupSettings\""
+			GetUserData          string "json:\"getUserData\""
+			MessageEvent         string "json:\"messageEvent\""
+			UserStateEvent       string "json:\"userStateEvent\""
+			GetOfflineMessage    string "json:\"getOfflineMessage\""
+			GetMessagesWithUser  string "json:\"getMessagesWithUser\""
+			ChangeSettings       string "json:\"changeSettings\""
+			ChangeAvatar         string "json:\"changeAvatar\""
+			Logout               string "json:\"logout\""
+		}{
+			Heart:                "heart",
+			CheckUserOnlineState: "checkUserOnlineState",
+			SendUserMessage:      "sendUserMessage",
+			SendGroupMessage:     "sendGroupMessage",
+			AddFriend:            "addFriend",
+			DeleteFriend:         "deleteFriend",
+			ChangeFriendSettings: "changeFriendSettings",
+			CreateGroup:          "createGroup",
+			BreakGroup:           "breakGroup",
+			ChangeGroupSettings:  "changeGroupSettings",
+			GetUserData:          "getUserData",
+			MessageEvent:         "messageEvent",
+			UserStateEvent:       "userStateEvent",
+			GetOfflineMessage:    "getOfflineMessage",
+			GetMessagesWithUser:  "getMessagesWithUser",
+			ChangeSettings:       "changeSettings",
+			ChangeAvatar:         "changeAvatar",
+			Logout:               "logout",
 		},
 	}
 

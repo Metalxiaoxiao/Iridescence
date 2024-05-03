@@ -5,13 +5,14 @@ import (
 	"database/sql"
 	"dbUtils"
 	"encoding/json"
-	"github.com/gorilla/websocket"
 	"hashUtils"
 	jsonprovider "jsonProvider"
 	"logger"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var (
@@ -71,6 +72,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	var userID int
 	// 处理WebSocket消息
 	for !Logined {
+
 		// 用户登录过程
 		// 在此处获取用户ID，并保存到映射关系中
 		var res jsonprovider.LoginResponse
@@ -137,7 +139,20 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//消息处理主循环
+	var connState bool
+	connState = true
+	// 创建一个定时器，实现心跳包机制
+	timer := time.NewTimer(time.Duration(configData.WebSocketHeartbeatTimeoutSeconds) * time.Second)
 	for {
+		if !connState {
+			break //跳出循环，释放资源
+		}
+
+		go func() {
+			<-timer.C // 阻塞直到定时器触发
+			connState = false
+		}()
+
 		// 读取消息
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -147,9 +162,46 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		// 在这里处理消息，用保存的映射关系来识别和处理特定用户的消息
 		logger.Debug("Received message from user", userID, ":", string(message), "\n")
+		timer.Reset(time.Duration(configData.WebSocketHeartbeatTimeoutSeconds) * time.Second) //重置心跳包
 		var pre jsonprovider.StandardJSONPack
 		jsonprovider.ParseJSON(message, &pre)
 		switch pre.Command {
+		case configData.Commands.Heart:
+			responsePack := jsonprovider.StringifyJSON(&jsonprovider.HeartBeatPack{
+				TimeStamp: time.Now().Local().UTC().Nanosecond(),
+			})
+			// 发送响应给请求者
+			err := conn.WriteMessage(websocket.TextMessage, responsePack)
+			if err != nil {
+				logger.Error("心跳包回发错误:", err)
+			}
+
+		case configData.Commands.CheckUserOnlineState:
+			// 解析请求
+			var onlineStateRequest jsonprovider.CheckUserOnlineStateRequest
+			jsonprovider.ParseJSON(message, &onlineStateRequest)
+
+			// 检查用户在线状态
+			ClientsLock.Lock()
+			user, exists := Clients[onlineStateRequest.UserID]
+			ClientsLock.Unlock()
+			isOnline := exists && user.Conn != nil
+
+			// 构造响应
+			onlineStateResponse := jsonprovider.CheckUserOnlineStateResponse{
+				UserID:   onlineStateRequest.UserID,
+				IsOnline: isOnline,
+			}
+
+			// 序列化响应为JSON
+			responseJSON := jsonprovider.StringifyJSON(onlineStateResponse)
+
+			// 发送响应给请求者
+			err := conn.WriteMessage(websocket.TextMessage, responseJSON)
+			if err != nil {
+				logger.Error("Failed to send message:", err)
+			}
+
 		case "sendUserMessage":
 			var state int
 			//获取基本信息
@@ -195,7 +247,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			_, err := sendMessageToUser(userID, []byte(jsonprovider.StringifyJSON(ACKPack)))
 			if err != nil {
 				logger.Debug("ACK回发错误", err)
-				break
+				connState = false
 			}
 		case "sendGroupMessage":
 			var req jsonprovider.SendGroupMessageRequest
@@ -207,7 +259,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			messageID, err = dbUtils.SaveOfflineGroupMessageToDB(userID, int(req.GroupID), req.MessageBody, UserMessage)
 			if err != nil {
 				logger.Error("用户发送群消息时数据库插入失败")
-				break
+				connState = false
 			}
 
 			// 构造发送数据包
@@ -231,7 +283,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 				_, err := sendMessageToUser(memberID, []byte(jsonprovider.StringifyJSON(sendingPack)))
 				if err != nil {
 					logger.Debug("群消息发送错误", err)
-					break
+					connState = false
 				}
 			}
 
@@ -245,7 +297,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			_, err = sendMessageToUser(userID, []byte(jsonprovider.StringifyJSON(ACKPack)))
 			if err != nil {
 				logger.Debug("群消息ACK回发错误", err)
-				break
+				connState = false
 			}
 		case "addFriend":
 			var req jsonprovider.AddFriendRequest
@@ -489,12 +541,15 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				logger.Error("Failed to send avatar change response:", err)
 			}
+		case "logout":
+			connState = false
 		}
 
 	}
 
 	// 用户断开连接
 	// 在此处删除映射关系
+	connState = false
 	if Logined {
 		ClientsLock.Lock()
 		delete(Clients, userID)
@@ -503,7 +558,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func broadcastMessage(message []byte) {
+func BroadcastMessage(message []byte) {
 	ClientsLock.Lock()
 	defer ClientsLock.Unlock()
 

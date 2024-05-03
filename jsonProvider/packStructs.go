@@ -7,6 +7,10 @@ type StandardJSONPack struct {
 	Command string `json:"command"`
 }
 
+type HeartBeatPack struct {
+	TimeStamp int `json:"timeStamp"`
+}
+
 type LoginRequest struct {
 	Userid   int    `json:"userId"`
 	Password string `json:"password"`
@@ -58,6 +62,15 @@ type AddFriendRequest struct {
 
 type DeleteFriendRequest struct {
 	FriendID int `json:"friendId"`
+}
+
+type CheckUserOnlineStateRequest struct {
+	UserID int `json:"userId"`
+}
+
+type CheckUserOnlineStateResponse struct {
+	UserID   int  `json:"userId"`
+	IsOnline bool `json:"isOnline"`
 }
 
 type GetUserDataRequest struct {

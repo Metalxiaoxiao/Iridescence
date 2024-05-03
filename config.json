@@ -14,7 +14,8 @@
     "uploadRote": "/upload",
     "downloadRote": "/download"
   },
-  "WebsocketConnBufferSize": 2048,
+  "websocketConnBufferSize": 2048,
+  "webSocketHeartbeatTimeoutSeconds": 10,
   "saltLength": 8,
   "tokenLength": 32,
   "authorizedServerTokens": [
@@ -22,20 +23,40 @@
     "token2",
     "token3"
   ],
-  "TokenExpiryHours": 24,
+  "tokenExpiryHours": 24,
   "UserSettings": {
-    "DefaultAvatar": "http://127.0.0.1",
+    "defaultAvatar": "http://127.0.0.1",
     "DefaultSettings": {},
-    "DefaultPermission": 0,
-    "DefaultFriendList": [
+    "defaultPermission": 0,
+    "defaultFriendList": [
       "1",
       "2"
     ],
-    "DefaultGroupList": [
+    "defaultGroupList": [
       "3",
       "4"
     ],
-    "DefaultNote": "暂无签名",
+    "defaultNote": "暂无签名",
     "DefaultHomePageData": {}
+  },
+  "Commands": {
+    "heart": "heart",
+    "checkUserOnlineState": "checkUserOnlineState",
+    "sendUserMessage": "sendUserMessage",
+    "sendGroupMessage": "sendGroupMessage",
+    "addFriend": "addFriend",
+    "deleteFriend": "deleteFriend",
+    "changeFriendSettings": "changeFriendSettings",
+    "createGroup": "createGroup",
+    "breakGroup": "breakGroup",
+    "changeGroupSettings": "changeGroupSettings",
+    "getUserData": "getUserData",
+    "messageEvent": "messageEvent",
+    "userStateEvent": "userStateEvent",
+    "getOfflineMessage": "getOfflineMessage",
+    "getMessagesWithUser": "getMessagesWithUser",
+    "changeSettings": "changeSettings",
+    "changeAvatar": "changeAvatar",
+    "logout": "logout"
   }
 }

@@ -5,7 +5,6 @@ import (
 	"config"
 	"dbUtils"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"httpService"
 	"logger"
 	"os"
@@ -176,15 +175,7 @@ func handleBroadcast(args []string) {
 
 	message := args[0]
 
-	websocketService.ClientsLock.Lock()
-	defer websocketService.ClientsLock.Unlock()
-
-	for _, user := range websocketService.Clients {
-		err := user.Conn.WriteMessage(websocket.TextMessage, []byte(message))
-		if err != nil {
-			fmt.Println("Failed to send message to user:", user.UserID)
-		}
-	}
+	websocketService.BroadcastMessage([]byte(message))
 
 	fmt.Println("Broadcast message sent.")
 }

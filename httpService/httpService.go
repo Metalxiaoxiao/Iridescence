@@ -147,19 +147,35 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 从请求中获取登录表单数据
-	userID := r.FormValue("userId")
-	password := r.FormValue("password")
+	var userID int
+	var password string
+
+	// 检查Content-Type头来确定请求的格式
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		var loginReq jsonprovider.LoginRequest
+		err := json.NewDecoder(r.Body).Decode(&loginReq)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmtPrintF(w, "无效的JSON格式")
+			return
+		}
+		userID = loginReq.Userid
+		password = loginReq.Password
+	} else {
+		// 从请求中获取登录表单数据
+		userID, _ = strconv.Atoi(r.FormValue("userId"))
+		password = r.FormValue("password")
+	}
 
 	// 验证表单数据是否有效
-	if userID == "" || password == "" {
+	if userID == 0 || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		fmtPrintF(w, "缺少参数")
 		return
 	}
-	userIDint, _ := strconv.Atoi(userID)
 
-	passwordHash, passwordSalt, err := dbUtils.GetDBPasswordHash(userIDint)
+	passwordHash, passwordSalt, err := dbUtils.GetDBPasswordHash(userID)
 	if err != nil {
 		logger.Error("读取数据库密码哈希值失败", err)
 	}
@@ -167,9 +183,9 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	tryingPasswordHash := hashUtils.HashPassword(password, passwordSalt)
 	logger.Debug("尝试哈希", tryingPasswordHash, "实际哈希", passwordHash)
 	if tryingPasswordHash == passwordHash {
-		res, _ := dbUtils.GetUserFromDB(userIDint)
+		res, _ := dbUtils.GetUserFromDB(userID)
 		var user = User{
-			UserID:         userIDint,
+			UserID:         userID,
 			UserAvatar:     res.UserAvatar,
 			UserNote:       res.UserNote,
 			UserPermission: res.UserPermission,
