@@ -23,13 +23,13 @@ func LoadConfig(conf config.Config) {
 	// 遍历 authorizedServerTokens 并将它们添加到 Tokens map 中
 	for index, token := range configData.AuthorizedServerTokens {
 		user := User{
-			UserID:         int(time.Now().UnixNano()) + index,
+			UserId:         int(time.Now().UnixNano()) + index,
 			UserPermission: config.PermissionServer,
 			UserName:       "OtherServer",
 			TokenExpiry:    time.Now().Add(1024 * time.Hour),
 		}
 		Tokens[token] = &user
-		UserToTokens[user.UserID] = &token
+		UserToTokens[user.UserId] = &token
 	}
 }
 
@@ -78,7 +78,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		}
 		jsonprovider.ParseJSON(body, &user)
 
-		username = strconv.Itoa(user.UserName)
+		username = user.UserName
 		password = user.Password
 	} else {
 		username = r.FormValue("userName")
@@ -185,7 +185,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if tryingPasswordHash == passwordHash {
 		res, _ := dbUtils.GetUserFromDB(userID)
 		var user = User{
-			UserID:         userID,
+			UserId:         userID,
 			UserAvatar:     res.UserAvatar,
 			UserNote:       res.UserNote,
 			UserPermission: res.UserPermission,
@@ -206,7 +206,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 		// 将token和用户信息存入内存
 		Tokens[token] = &user
-		UserToTokens[user.UserID] = &token
+		UserToTokens[user.UserId] = &token
 
 		// 返回token给用户
 		w.WriteHeader(http.StatusOK)
@@ -383,7 +383,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 		jsonprovider.WriteJSONToWriter(w, res)
 	case "getUserData":
 		// 从数据库中获取用户信息
-		targetUser, err := dbUtils.GetUserFromDB(user.UserID)
+		targetUser, err := dbUtils.GetUserFromDB(user.UserId)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmtPrintF(w, "Failed to get user data")
@@ -439,7 +439,7 @@ func CheckTokenExpiry(token string) bool {
 	// 检查Token是否已经过期
 	if time.Now().After(user.TokenExpiry) {
 		// Token已经过期
-		delete(UserToTokens, user.UserID)
+		delete(UserToTokens, user.UserId)
 		return false
 	}
 

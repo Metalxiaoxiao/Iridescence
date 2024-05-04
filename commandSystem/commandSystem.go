@@ -122,7 +122,7 @@ func handleUserInfo(args []string) {
 		return
 	}
 
-	fmt.Printf("用户ID: %d\n", user.UserID)
+	fmt.Printf("用户ID: %d\n", user.UserId)
 	fmt.Printf("用户名: %s\n", user.UserName)
 	fmt.Printf("用户头像: %s\n", user.UserAvatar)
 	fmt.Printf("用户备注: %s\n", user.UserNote)
@@ -251,7 +251,7 @@ func handleListTokens(args []string) {
 	for token, user := range httpService.Tokens {
 		// 检查token是否已经过期
 		if httpService.CheckTokenExpiry(token) {
-			fmt.Printf("Token: %s, 用户ID: %d, 权限等级: %d\n", token, user.UserID, user.UserPermission)
+			fmt.Printf("Token: %s, 用户ID: %d, 权限等级: %d\n", token, user.UserId, user.UserPermission)
 		}
 	}
 }

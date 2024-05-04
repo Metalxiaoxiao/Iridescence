@@ -2,20 +2,22 @@ package jsonprovider
 
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type User struct {
-	UserID         int
-	TokenExpiry    time.Time
-	Conn           *websocket.Conn
+	UserId         int             `json:"userId"`
+	TokenExpiry    time.Time       `json:"-"`
+	Conn           *websocket.Conn `json:"-"`
 	UserName       string          `json:"userName"`
 	UserAvatar     string          `json:"userAvatar"`
 	UserNote       string          `json:"userNote"`
 	UserPermission uint            `json:"userPermission"`
 	UserFriendList json.RawMessage `json:"userFriendList"`
 }
+
 type Friend struct {
 	UserID  int
 	AddTime int

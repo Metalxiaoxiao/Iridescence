@@ -104,7 +104,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			// 创建新的User结构体
 			user := &User{
-				UserID:         userID,
+				UserId:         userID,
 				Conn:           conn,
 				UserName:       username,
 				UserAvatar:     userAvatar,
@@ -119,8 +119,9 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			ClientsLock.Unlock()
 
 			res = jsonprovider.LoginResponse{
-				State:   true,
-				Message: "登录成功",
+				State:    true,
+				Message:  "登录成功",
+				UserData: jsonprovider.User(*user),
 			}
 			logger.Debug("用户", userID, "登录成功")
 			Logined = true
@@ -554,6 +555,7 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		ClientsLock.Lock()
 		delete(Clients, userID)
 		ClientsLock.Unlock()
+		logger.Info("用户", userID, "已断开连接")
 	}
 
 }
@@ -622,7 +624,7 @@ func handleGetOfflineMessages(userID int) {
 
 	// 创建响应
 	res := jsonprovider.GetOfflineMessagesResponse{
-		UserID:   userID,
+		State:    true,
 		Messages: messages,
 	}
 

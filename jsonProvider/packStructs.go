@@ -1,6 +1,8 @@
 package jsonprovider
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // StandardJSONPack 根数据包结构体，仅用于websocket
 type StandardJSONPack struct {
@@ -16,11 +18,12 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 type LoginResponse struct {
-	State   bool
-	Message string
+	State    bool   `json:"state"`
+	Message  string `json:"message"`
+	UserData User   `json:"userData"`
 }
 type SignUpRequest struct {
-	UserName int    `json:"userName"`
+	UserName string `json:"userName"`
 	Password string `json:"password"`
 }
 type SendMessageRequest struct {
@@ -165,7 +168,7 @@ type DeleteFriendResponse struct {
 	Success  bool `json:"success"`
 }
 type GetOfflineMessagesResponse struct {
-	UserID   int       `json:"userId"`
+	State    bool      `json:"state"`
 	Messages []Message `json:"messages"`
 }
 type PublishPostRequest struct {
