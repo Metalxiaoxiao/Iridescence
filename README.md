@@ -17,7 +17,7 @@ Iridencense 是一个高效稳定的聊天服务器，使用 Go 语言编写，�
 1. 克隆这个仓库到你的本地机器上。
 
 ```bash
-git clone https://github.com/Metalxiaoxiao/iridencense.git
+git clone https://github.com/Metalxiaoxiao/Iridencense.git
 ```
 
 2. 进入项目目录。

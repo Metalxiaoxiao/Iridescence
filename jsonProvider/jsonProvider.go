@@ -37,3 +37,16 @@ func WriteJSONToWriter(writer io.Writer, data interface{}) {
 		logger.Error("JSON编码错误", err)
 	}
 }
+
+func SdandarlizeJSON_byte(command string, content interface{}) []byte {
+	return StringifyJSON(SdandarlizeJSON(command, content))
+}
+
+func SdandarlizeJSON(command string, content interface{}) interface{} {
+	var res = StandardJSONPack{
+		Command: command,
+		Content: content,
+	}
+	logger.Debug("服务器回发包：", res)
+	return res
+}

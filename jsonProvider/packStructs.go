@@ -6,7 +6,8 @@ import (
 
 // StandardJSONPack 根数据包结构体，仅用于websocket
 type StandardJSONPack struct {
-	Command string `json:"command"`
+	Command string      `json:"command"`
+	Content interface{} `json:"content"`
 }
 
 type HeartBeatPack struct {
@@ -14,8 +15,9 @@ type HeartBeatPack struct {
 }
 
 type LoginRequest struct {
-	Userid   int    `json:"userId"`
-	Password string `json:"password"`
+	Userid                 int    `json:"userId"`
+	Password               string `json:"password"`
+	UseArtificialHeartPack bool   `json:"heartPack"`
 }
 type LoginResponse struct {
 	State    bool   `json:"state"`
