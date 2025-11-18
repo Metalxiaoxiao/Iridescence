@@ -552,9 +552,11 @@ func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// 在此处删除映射关系
 	connState = false
 	if Logined {
-		ClientsLock.Lock()
-		delete(Clients, userID)
-		ClientsLock.Unlock()
+		func() {
+			ClientsLock.Lock()
+			defer ClientsLock.Unlock()
+			delete(Clients, userID)
+		}()
 		logger.Info("用户", userID, "已断开连接")
 	}
 
@@ -575,9 +577,9 @@ func BroadcastMessage(message []byte) {
 
 func sendMessageToUser(userID int, message []byte) (bool, error) {
 	ClientsLock.Lock()
-	defer ClientsLock.Unlock()
-
 	client, ok := Clients[userID]
+	ClientsLock.Unlock()
+
 	if !ok {
 		logger.Warn("用户不在线:", userID)
 		return false, nil
@@ -586,7 +588,6 @@ func sendMessageToUser(userID int, message []byte) (bool, error) {
 	err := client.Conn.WriteMessage(websocket.TextMessage, message)
 	if err != nil {
 		logger.Error("消息发送失败:", err)
-		// 处理发送消息失败的情况
 		return false, err
 	}
 
